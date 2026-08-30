@@ -40,6 +40,7 @@ A resource should support concepts such as:
 * Category
 * Name
 * Metadata
+* Tag
 
 Do not over-design fields that are not currently required.
 
