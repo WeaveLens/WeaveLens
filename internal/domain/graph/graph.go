@@ -9,10 +9,10 @@ import (
 )
 
 var (
-	ErrNodeNotFound      = errors.New("node not found")
-	ErrDuplicateNode     = errors.New("duplicate node")
-	ErrRelationshipNotFound = errors.New("relationship not found")
-	ErrDuplicateRelationship = errors.New("duplicate relationship")
+	ErrNodeNotFound            = errors.New("node not found")
+	ErrDuplicateNode           = errors.New("duplicate node")
+	ErrRelationshipNotFound    = errors.New("relationship not found")
+	ErrDuplicateRelationship   = errors.New("duplicate relationship")
 )
 
 type Graph struct {
@@ -120,4 +120,103 @@ func (g *Graph) RelationshipCount() int {
 	defer g.mu.RUnlock()
 
 	return len(g.edges)
+}
+
+func (g *Graph) GetRelationshipsForNode(id resource.ResourceID) ([]*relationship.Relationship, error) {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	if _, exists := g.nodes[id]; !exists {
+		return nil, ErrNodeNotFound
+	}
+
+	var result []*relationship.Relationship
+	for _, rel := range g.edges {
+		if rel.SourceID() == string(id) || rel.TargetID() == string(id) {
+			result = append(result, rel)
+		}
+	}
+
+	return result, nil
+}
+
+func (g *Graph) GetNeighbors(id resource.ResourceID) ([]*resource.Resource, error) {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	if _, exists := g.nodes[id]; !exists {
+		return nil, ErrNodeNotFound
+	}
+
+	neighborIDs := make(map[resource.ResourceID]struct{})
+	for _, rel := range g.edges {
+		if rel.SourceID() == string(id) {
+			neighborIDs[resource.ResourceID(rel.TargetID())] = struct{}{}
+		}
+		if rel.TargetID() == string(id) {
+			neighborIDs[resource.ResourceID(rel.SourceID())] = struct{}{}
+		}
+	}
+
+	var result []*resource.Resource
+	for neighborID := range neighborIDs {
+		if node, exists := g.nodes[neighborID]; exists {
+			result = append(result, node)
+		}
+	}
+
+	return result, nil
+}
+
+func (g *Graph) FilterNodes(predicate func(*resource.Resource) bool) []*resource.Resource {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	var result []*resource.Resource
+	for _, node := range g.nodes {
+		if predicate(node) {
+			result = append(result, node)
+		}
+	}
+
+	return result
+}
+
+func (g *Graph) FilterRelationships(predicate func(*relationship.Relationship) bool) []*relationship.Relationship {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	var result []*relationship.Relationship
+	for _, rel := range g.edges {
+		if predicate(rel) {
+			result = append(result, rel)
+		}
+	}
+
+	return result
+}
+
+type GraphSnapshot struct {
+	Nodes        map[resource.ResourceID]*resource.Resource
+	Relationships map[relationship.RelationshipID]*relationship.Relationship
+}
+
+func (g *Graph) Snapshot() GraphSnapshot {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	nodes := make(map[resource.ResourceID]*resource.Resource, len(g.nodes))
+	for id, node := range g.nodes {
+		nodes[id] = node
+	}
+
+	rels := make(map[relationship.RelationshipID]*relationship.Relationship, len(g.edges))
+	for id, rel := range g.edges {
+		rels[id] = rel
+	}
+
+	return GraphSnapshot{
+		Nodes:        nodes,
+		Relationships: rels,
+	}
 }
