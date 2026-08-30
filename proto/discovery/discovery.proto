@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package discovery;
+
+option go_package = "github.com/elip/WeaveLens/proto/discovery";
+
+import "common/resource.proto";
+
+message StartScanRequest {
+  string region = 1;
+}
+
+message StartScanResponse {
+  string scan_id = 1;
+  string status = 2;
+  string message = 3;
+}
+
+message GetScanStatusRequest {
+  string scan_id = 1;
+}
+
+message GetScanStatusResponse {
+  string scan_id = 1;
+  string status = 2;
+  int32 resource_count = 3;
+  string message = 4;
+}
+
+message CancelScanRequest {
+  string scan_id = 1;
+}
+
+message CancelScanResponse {
+  bool cancelled = 1;
+  string message = 2;
+}
+
+message ListResourcesRequest {
+  string scan_id = 1;
+  string category = 2;
+  string type = 3;
+}
+
+message ListResourcesResponse {
+  repeated common.Resource resources = 1;
+  int32 total = 2;
+}
+
+service DiscoveryService {
+  rpc StartScan(StartScanRequest) returns (StartScanResponse);
+  rpc GetScanStatus(GetScanStatusRequest) returns (GetScanStatusResponse);
+  rpc CancelScan(CancelScanRequest) returns (CancelScanResponse);
+  rpc ListResources(ListResourcesRequest) returns (ListResourcesResponse);
+}

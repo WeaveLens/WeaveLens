@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package graph;
+
+option go_package = "github.com/elip/WeaveLens/proto/graph";
+
+import "common/resource.proto";
+
+message GetGraphRequest {
+  string scan_id = 1;
+}
+
+message GetGraphResponse {
+  repeated common.Resource nodes = 1;
+  repeated common.Relationship edges = 2;
+  int32 node_count = 3;
+  int32 edge_count = 4;
+}
+
+message GetResourceRequest {
+  string resource_id = 1;
+}
+
+message GetResourceResponse {
+  common.Resource resource = 1;
+}
+
+message GetNeighborsRequest {
+  string resource_id = 1;
+}
+
+message GetNeighborsResponse {
+  repeated common.Resource neighbors = 1;
+}
+
+message GetRelationshipsRequest {
+  string resource_id = 1;
+}
+
+message GetRelationshipsResponse {
+  repeated common.Relationship relationships = 1;
+}
+
+service GraphService {
+  rpc GetGraph(GetGraphRequest) returns (GetGraphResponse);
+  rpc GetResource(GetResourceRequest) returns (GetResourceResponse);
+  rpc GetNeighbors(GetNeighborsRequest) returns (GetNeighborsResponse);
+  rpc GetRelationships(GetRelationshipsRequest) returns (GetRelationshipsResponse);
+}
