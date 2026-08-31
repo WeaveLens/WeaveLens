@@ -1,4 +1,4 @@
-import type { Scan, ScanConfig, Graph, Resource, Relationship } from '../types'
+import type { Scan, ScanConfig, Graph, Resource, Relationship, ConnectionStatus } from '../types'
 
 const API_BASE = '/api'
 
@@ -37,4 +37,9 @@ export async function getResource(resourceId: string): Promise<Resource> {
 export async function getRelationships(resourceId: string): Promise<Relationship[]> {
   const response = await fetch(`${API_BASE}/resources/${encodeURIComponent(resourceId)}/relationships`)
   return handleResponse<Relationship[]>(response)
+}
+
+export async function getConnectionStatus(): Promise<ConnectionStatus> {
+  const response = await fetch(`${API_BASE}/connection`)
+  return handleResponse<ConnectionStatus>(response)
 }

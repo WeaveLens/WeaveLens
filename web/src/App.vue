@@ -8,6 +8,7 @@ import ScanPanel from './components/ScanPanel.vue'
 import ResourceDetail from './components/ResourceDetail.vue'
 import Legend from './components/Legend.vue'
 import SearchBar from './components/SearchBar.vue'
+import CloudConnection from './components/CloudConnection.vue'
 
 const scanStore = useScanStore()
 const graphStore = useGraphStore()
@@ -34,6 +35,7 @@ watch(() => scanStore.currentScan?.id, (scanId) => {
     <header class="app-header">
       <h1>WeaveLens</h1>
       <div class="header-actions">
+        <router-link to="/setup/aws" class="header-link">Setup Guide</router-link>
         <button @click="uiStore.toggleSidebar">Toggle Sidebar</button>
         <button @click="uiStore.toggleLegend">Toggle Legend</button>
       </div>
@@ -41,6 +43,7 @@ watch(() => scanStore.currentScan?.id, (scanId) => {
 
     <div class="app-body">
       <aside v-if="uiStore.sidebarOpen" class="left-panel">
+        <CloudConnection />
         <ScanPanel />
       </aside>
 
@@ -86,6 +89,16 @@ watch(() => scanStore.currentScan?.id, (scanId) => {
   color: white;
   border-radius: 4px;
   cursor: pointer;
+}
+.header-link {
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 14px;
 }
 .app-body {
   display: flex;

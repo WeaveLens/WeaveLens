@@ -36,3 +36,21 @@ export interface Graph {
 export interface ApiError {
   message: string
 }
+
+export type ConnectionState =
+  | 'connected'
+  | 'connecting'
+  | 'not_connected'
+  | 'authentication_error'
+  | 'access_denied'
+  | 'configuration_error'
+  | 'unknown_error'
+
+export interface ConnectionStatus {
+  state: ConnectionState
+  accountId: string
+  arn: string
+  region: string
+  credentialSource: string
+  message: string
+}
