@@ -10,6 +10,8 @@ import (
 	"github.com/elip/WeaveLens/internal/infrastructure/nats"
 )
 
+type awsScanner struct{}
+
 type discoveryService struct {
 	eventBus *nats.EventBus
 	logger   *slog.Logger

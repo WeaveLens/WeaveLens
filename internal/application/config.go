@@ -5,10 +5,14 @@ import (
 )
 
 type Config struct {
-	ServerPort string
-	Env        string
-	LogLevel   string
-	NATSURL    string
+	ServerPort       string
+	Env              string
+	LogLevel         string
+	NATSURL          string
+	AWSRegion        string
+	AWSRoleARN       string
+	AWSRoleSessionName string
+	AWSExternalID    string
 }
 
 func Load() (*Config, error) {
@@ -32,10 +36,19 @@ func Load() (*Config, error) {
 		natsURL = "nats://localhost:4222"
 	}
 
+	awsRegion := os.Getenv("AWS_REGION")
+	if awsRegion == "" {
+		awsRegion = os.Getenv("AWS_DEFAULT_REGION")
+	}
+
 	return &Config{
-		ServerPort: port,
-		Env:        env,
-		LogLevel:   logLevel,
-		NATSURL:    natsURL,
+		ServerPort:        port,
+		Env:               env,
+		LogLevel:          logLevel,
+		NATSURL:           natsURL,
+		AWSRegion:         awsRegion,
+		AWSRoleARN:        os.Getenv("AWS_ROLE_ARN"),
+		AWSRoleSessionName: os.Getenv("AWS_ROLE_SESSION_NAME"),
+		AWSExternalID:     os.Getenv("AWS_EXTERNAL_ID"),
 	}, nil
 }

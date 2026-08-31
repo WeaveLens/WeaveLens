@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/elip/WeaveLens/internal/application/service"
+	"github.com/elip/WeaveLens/internal/infrastructure/aws/credential"
 	"github.com/elip/WeaveLens/internal/infrastructure/nats"
 	"github.com/elip/WeaveLens/internal/transport"
 )
@@ -18,6 +19,12 @@ type App struct {
 	config   *Config
 	logger   *slog.Logger
 	eventBus *nats.EventBus
+	scanner  *awsScanner
+}
+
+type awsScanner struct {
+	provider credential.Provider
+	identity *credential.Identity
 }
 
 func New(cfg *Config) *App {
@@ -44,10 +51,46 @@ func New(cfg *Config) *App {
 	subscriber := nats.NewJetStreamSubscriber(natsClient)
 	eventBus := nats.NewEventBus(publisher, subscriber)
 
+	provider := credential.Provider(&credential.DefaultProvider{})
+	if cfg.AWSRoleARN != "" {
+		provider = credential.NewAssumeRoleProvider(provider, credential.AssumeRoleConfig{
+			RoleARN:      cfg.AWSRoleARN,
+			SessionName:  cfg.AWSRoleSessionName,
+			ExternalID:   cfg.AWSExternalID,
+		})
+	}
+
+	var scanner *awsScanner
+	if cfg.AWSRegion != "" {
+		awsCfg, err := provider.Load(context.Background(), cfg.AWSRegion)
+		if err != nil {
+			logger.Error("failed to load AWS config", "error", err)
+			os.Exit(1)
+		}
+
+		identity, err := credential.VerifyIdentity(context.Background(), awsCfg)
+		if err != nil {
+			logger.Error("failed to verify AWS identity", "error", err)
+			os.Exit(1)
+		}
+
+		logger.Info("AWS identity verified",
+			"accountID", identity.AccountID,
+			"arn", identity.ARN,
+			"userID", identity.UserID,
+		)
+
+		scanner = &awsScanner{
+			provider: provider,
+			identity: identity,
+		}
+	}
+
 	return &App{
 		config:   cfg,
 		logger:   logger,
 		eventBus: eventBus,
+		scanner:  scanner,
 	}
 }
 
