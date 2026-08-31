@@ -54,10 +54,10 @@ func New(cfg *Config) *App {
 func (a *App) Run(ctx context.Context) error {
 	a.logger.Info("starting WeaveLens", "env", a.config.Env, "port", a.config.ServerPort)
 
-	_ = service.NewDiscoveryService(a.eventBus, a.logger)
-	_ = service.NewGraphService(a.eventBus, a.logger)
+	discoveryService := service.NewDiscoveryService(a.eventBus, a.logger)
+	graphService := service.NewGraphService(a.eventBus, a.logger)
 
-	mux := transport.NewRouter()
+	mux := transport.NewRouter(discoveryService, graphService)
 	server, err := transport.StartServer(":"+a.config.ServerPort, mux)
 	if err != nil {
 		return fmt.Errorf("failed to start server: %w", err)
