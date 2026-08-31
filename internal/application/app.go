@@ -94,7 +94,7 @@ func (a *App) Run(ctx context.Context) error {
 	a.logger.Info("starting WeaveLens", "env", a.config.Env, "port", a.config.ServerPort)
 
 	discoveryService := service.NewDiscoveryService(a.eventBus, a.logger, a.discovery)
-	graphService := service.NewGraphService(a.eventBus, a.logger)
+	graphService := service.NewGraphService(a.eventBus, a.logger, a.discovery)
 
 	mux := transport.NewRouter(discoveryService, graphService)
 	server, err := transport.StartServer(":"+a.config.ServerPort, mux)

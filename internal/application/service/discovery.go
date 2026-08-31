@@ -117,42 +117,6 @@ func (s *discoveryService) ListResources(ctx context.Context, scanID, category, 
 	return resources, nil
 }
 
-type graphService struct {
-	eventBus *nats.EventBus
-	logger   *slog.Logger
-}
-
-func NewGraphService(eventBus *nats.EventBus, logger *slog.Logger) GraphService {
-	return &graphService{
-		eventBus: eventBus,
-		logger:   logger,
-	}
-}
-
-func (s *graphService) GetGraph(ctx context.Context, scanID string) ([]Resource, []Relationship, error) {
-	return []Resource{
-		{ID: "res-1", Name: "test", Type: "EC2", Category: "compute"},
-	}, []Relationship{
-		{ID: "rel-1", SourceID: "vpc-1", TargetID: "subnet-1", Type: "contains"},
-	}, nil
-}
-
-func (s *graphService) GetResource(ctx context.Context, resourceID string) (Resource, error) {
-	return Resource{ID: resourceID, Name: "test", Type: "EC2", Category: "compute"}, nil
-}
-
-func (s *graphService) GetNeighbors(ctx context.Context, resourceID string) ([]Resource, error) {
-	return []Resource{
-		{ID: "res-2", Name: "neighbor", Type: "Subnet", Category: "network"},
-	}, nil
-}
-
-func (s *graphService) GetRelationships(ctx context.Context, resourceID string) ([]Relationship, error) {
-	return []Relationship{
-		{ID: "rel-1", SourceID: resourceID, TargetID: "res-2", Type: "contains"},
-	}, nil
-}
-
 func generateScanID() string {
 	return "scan-" + time.Now().Format("20060102150405")
 }
