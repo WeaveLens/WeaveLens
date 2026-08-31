@@ -7,16 +7,16 @@ import (
 	"time"
 
 	"github.com/elip/WeaveLens/internal/domain/event"
-	"github.com/elip/WeaveLens/internal/infrastructure/aws"
+	"github.com/elip/WeaveLens/internal/infrastructure/aws/discovery"
 	"github.com/elip/WeaveLens/internal/infrastructure/nats"
 )
 
 type discoveryService struct {
-	eventBus *nats.EventBus
-	logger   *slog.Logger
-	mu       sync.RWMutex
-	scans    map[string]*ScanRecord
-	scanner  *aws.AWSScanner
+	eventBus  *nats.EventBus
+	logger    *slog.Logger
+	mu        sync.RWMutex
+	scans     map[string]*ScanRecord
+	discovery discovery.ResourceDiscovery
 }
 
 type ScanRecord struct {
@@ -27,12 +27,12 @@ type ScanRecord struct {
 	UpdatedAt time.Time
 }
 
-func NewDiscoveryService(eventBus *nats.EventBus, logger *slog.Logger, scanner *aws.AWSScanner) DiscoveryService {
+func NewDiscoveryService(eventBus *nats.EventBus, logger *slog.Logger, discovery discovery.ResourceDiscovery) DiscoveryService {
 	return &discoveryService{
-		eventBus: eventBus,
-		logger:   logger,
-		scans:    make(map[string]*ScanRecord),
-		scanner:  scanner,
+		eventBus:  eventBus,
+		logger:    logger,
+		scans:     make(map[string]*ScanRecord),
+		discovery: discovery,
 	}
 }
 
@@ -93,9 +93,28 @@ func (s *discoveryService) CancelScan(ctx context.Context, scanID string) error 
 }
 
 func (s *discoveryService) ListResources(ctx context.Context, scanID, category, resourceType string) ([]Resource, error) {
-	return []Resource{
-		{ID: "res-1", Name: "test", Type: "EC2", Category: "compute"},
-	}, nil
+	if s.discovery == nil {
+		return []Resource{}, nil
+	}
+
+	result, err := s.discovery.Discover(ctx, discovery.DiscoveryRequest{Region: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var resources []Resource
+	for _, res := range result.Resources {
+		resources = append(resources, Resource{
+			ID:       string(res.ID()),
+			Name:     res.Name(),
+			Type:     string(res.Type()),
+			Category: string(res.Category()),
+			ARN:      res.ARN(),
+			Region:   res.Region(),
+			Metadata: res.Metadata(),
+		})
+	}
+	return resources, nil
 }
 
 type graphService struct {

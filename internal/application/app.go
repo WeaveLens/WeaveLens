@@ -10,18 +10,18 @@ import (
 	"time"
 
 	"github.com/elip/WeaveLens/internal/application/service"
-	"github.com/elip/WeaveLens/internal/infrastructure/aws"
 	"github.com/elip/WeaveLens/internal/infrastructure/aws/client"
 	"github.com/elip/WeaveLens/internal/infrastructure/aws/credential"
+	"github.com/elip/WeaveLens/internal/infrastructure/aws/discovery"
 	"github.com/elip/WeaveLens/internal/infrastructure/nats"
 	"github.com/elip/WeaveLens/internal/transport"
 )
 
 type App struct {
-	config   *Config
-	logger   *slog.Logger
-	eventBus *nats.EventBus
-	scanner  *aws.AWSScanner
+	config    *Config
+	logger    *slog.Logger
+	eventBus  *nats.EventBus
+	discovery discovery.ResourceDiscovery
 }
 
 func New(cfg *Config) *App {
@@ -57,7 +57,7 @@ func New(cfg *Config) *App {
 		})
 	}
 
-	var scanner *aws.AWSScanner
+	var disc discovery.ResourceDiscovery
 	if cfg.AWSRegion != "" {
 		awsCfg, err := provider.Load(context.Background(), cfg.AWSRegion)
 		if err != nil {
@@ -79,21 +79,21 @@ func New(cfg *Config) *App {
 
 		factory := client.NewFactory()
 		clients := factory.BuildClients(awsCfg)
-		scanner = aws.NewAWSScanner(clients)
+		disc = discovery.NewServiceFromConfig(discovery.ServiceConfig{Clients: clients})
 	}
 
 	return &App{
-		config:   cfg,
-		logger:   logger,
-		eventBus: eventBus,
-		scanner:  scanner,
+		config:    cfg,
+		logger:    logger,
+		eventBus:  eventBus,
+		discovery: disc,
 	}
 }
 
 func (a *App) Run(ctx context.Context) error {
 	a.logger.Info("starting WeaveLens", "env", a.config.Env, "port", a.config.ServerPort)
 
-	discoveryService := service.NewDiscoveryService(a.eventBus, a.logger, a.scanner)
+	discoveryService := service.NewDiscoveryService(a.eventBus, a.logger, a.discovery)
 	graphService := service.NewGraphService(a.eventBus, a.logger)
 
 	mux := transport.NewRouter(discoveryService, graphService)
