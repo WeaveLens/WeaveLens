@@ -8,6 +8,7 @@ type Config struct {
 	ServerPort string
 	Env        string
 	LogLevel   string
+	NATSURL    string
 }
 
 func Load() (*Config, error) {
@@ -26,9 +27,15 @@ func Load() (*Config, error) {
 		logLevel = "info"
 	}
 
+	natsURL := os.Getenv("NATS_URL")
+	if natsURL == "" {
+		natsURL = "nats://localhost:4222"
+	}
+
 	return &Config{
 		ServerPort: port,
 		Env:        env,
 		LogLevel:   logLevel,
+		NATSURL:    natsURL,
 	}, nil
 }
