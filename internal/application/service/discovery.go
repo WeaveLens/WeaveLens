@@ -7,16 +7,16 @@ import (
 	"time"
 
 	"github.com/elip/WeaveLens/internal/domain/event"
+	"github.com/elip/WeaveLens/internal/infrastructure/aws"
 	"github.com/elip/WeaveLens/internal/infrastructure/nats"
 )
-
-type awsScanner struct{}
 
 type discoveryService struct {
 	eventBus *nats.EventBus
 	logger   *slog.Logger
 	mu       sync.RWMutex
 	scans    map[string]*ScanRecord
+	scanner  *aws.AWSScanner
 }
 
 type ScanRecord struct {
@@ -27,11 +27,12 @@ type ScanRecord struct {
 	UpdatedAt time.Time
 }
 
-func NewDiscoveryService(eventBus *nats.EventBus, logger *slog.Logger) DiscoveryService {
+func NewDiscoveryService(eventBus *nats.EventBus, logger *slog.Logger, scanner *aws.AWSScanner) DiscoveryService {
 	return &discoveryService{
 		eventBus: eventBus,
 		logger:   logger,
 		scans:    make(map[string]*ScanRecord),
+		scanner:  scanner,
 	}
 }
 
