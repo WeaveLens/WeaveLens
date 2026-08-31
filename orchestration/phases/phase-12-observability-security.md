@@ -1,4 +1,4 @@
-# Phase 10 — Observability & Security
+# Phase 12 — Observability & Security
 
 ## Objective
 

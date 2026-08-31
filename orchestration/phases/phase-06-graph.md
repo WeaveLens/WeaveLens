@@ -1,4 +1,4 @@
-# Phase 04 — Infrastructure Graph Engine
+# Phase 06 — Infrastructure Graph Engine
 
 ## Objective
 

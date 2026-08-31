@@ -1,44 +1,156 @@
-# Phase 05 — Real AWS Resource Discovery
+# Phase 05 — AWS Resource Discovery
 
 ## Role
 
-You are a senior Go engineer specializing in AWS infrastructure discovery.
+You are a senior Go engineer specializing in cloud infrastructure discovery and clean architecture.
 
-You are working on WeaveLens as part of an orchestrated multi-agent development workflow.
+You are working on the WeaveLens project as part of an orchestrated multi-agent development workflow.
 
 ## Context
+
+WeaveLens is a cloud infrastructure discovery and visualization platform.
+
+The current implementation focuses exclusively on AWS.
+
+Azure and GCP may be supported in the future.
+
+The architecture must therefore establish reasonable provider boundaries without implementing multi-cloud support prematurely.
 
 Previous phases established:
 
 ```text
 Phase 03
-AWS Credential Strategy
+AWS Authentication & Credential Strategy
         ↓
 Phase 04
-AWS Client Factory
+AWS Client & Infrastructure Layer
         ↓
 Phase 05
 AWS Resource Discovery
 ```
 
-WeaveLens must now make real AWS API calls.
+The target flow is:
+
+```text
+Cloud Provider
+      ↓
+Resource Discovery
+      ↓
+Canonical WeaveLens Resources
+      ↓
+Relationships
+      ↓
+Graph Engine
+```
 
 ## Objective
 
-Implement the first production-oriented AWS resource discovery capability.
+Implement real AWS resource discovery using the AWS clients established in Phase 04.
 
-The discovery layer must:
+The implementation must:
 
-1. use AWS clients created by Phase 04;
-2. call real AWS APIs;
+1. call real AWS APIs;
+2. discover supported AWS resources;
 3. normalize AWS resources into WeaveLens domain resources;
-4. discover relevant relationships;
-5. return canonical WeaveLens resources;
-6. remain independent from transport and presentation layers.
+4. discover reliable relationships between resources;
+5. remain independent from HTTP, gRPC, NATS, and frontend code;
+6. establish provider-neutral boundaries that can support Azure and GCP later.
+
+## Multi-Cloud Boundary
+
+WeaveLens is currently AWS-only.
+
+Do NOT implement Azure or GCP.
+
+However, avoid making the application/domain layer fundamentally dependent on AWS terminology.
+
+Prefer provider-neutral concepts where they represent genuine domain concepts.
+
+Example:
+
+```text
+Resource
+Provider
+ResourceType
+ResourceID
+Region
+Account
+Metadata
+Relationship
+```
+
+AWS-specific implementation belongs under the AWS infrastructure/provider boundary.
+
+Conceptually:
+
+```text
+internal/
+├── domain/
+│   └── resource/
+│
+├── application/
+│   └── discovery/
+│
+└── infrastructure/
+    └── cloud/
+        └── aws/
+            ├── auth/
+            ├── client/
+            └── discovery/
+```
+
+Adapt this structure to the existing repository instead of reorganizing unrelated code.
+
+## Discovery Interface
+
+Define an application-facing discovery abstraction.
+
+Conceptually:
+
+```go
+type ResourceDiscovery interface {
+    Discover(
+        ctx context.Context,
+        request DiscoveryRequest,
+    ) (DiscoveryResult, error)
+}
+```
+
+The exact interface must follow the existing project's architecture.
+
+The application-facing interface MUST NOT expose:
+
+* AWS SDK types;
+* AWS SDK clients;
+* AWS-specific request/response models.
+
+AWS-specific details remain behind the infrastructure/provider implementation.
+
+## AWS Implementation
+
+Implement an AWS-specific discovery adapter.
+
+Conceptually:
+
+```text
+ResourceDiscovery
+       ▲
+       │
+AWS Resource Discovery
+       │
+       ▼
+AWS Client Factory
+       │
+       ▼
+AWS SDK
+       │
+       ▼
+AWS
+```
 
 ## Initial Resource Scope
 
-Start with:
+Implement discovery for:
 
 ### Networking
 
@@ -51,82 +163,19 @@ Start with:
 
 ### Compute
 
-* EC2
+* EC2 Instance
 
 ### Database
 
-* RDS
+* RDS Instance
 
 ### Load Balancing
 
 * Application Load Balancer
 
-Do NOT attempt to discover every AWS service.
+Do not attempt to discover every AWS service.
 
-## Architecture
-
-Target flow:
-
-```text
-Application
-    ↓
-Discovery Interface
-    ↓
-AWS Discovery Adapter
-    ↓
-AWS Client Factory
-    ↓
-AWS SDK
-    ↓
-AWS
-```
-
-The frontend, gRPC layer, and NATS must not directly call AWS SDK APIs.
-
-## Discovery Interface
-
-Define an application-facing abstraction.
-
-Conceptually:
-
-```go
-type ResourceDiscovery interface {
-    Discover(ctx context.Context, request DiscoveryRequest) (DiscoveryResult, error)
-}
-```
-
-Adapt the exact API to existing domain conventions.
-
-The interface must not expose AWS SDK-specific types.
-
-## Service Scanners
-
-Create focused scanners.
-
-Conceptually:
-
-```text
-AWS Discovery
-├── VPC Scanner
-├── Subnet Scanner
-├── Route Table Scanner
-├── Internet Gateway Scanner
-├── NAT Gateway Scanner
-├── Security Group Scanner
-├── EC2 Scanner
-├── RDS Scanner
-└── ALB Scanner
-```
-
-Each scanner should have one clear responsibility.
-
-Avoid creating one huge:
-
-```text
-aws_scanner.go
-```
-
-containing all AWS services.
+The implementation should make adding another AWS resource type straightforward.
 
 ## Resource Normalization
 
@@ -139,14 +188,61 @@ AWS SDK Object
       ↓
 AWS Adapter
       ↓
-domain.Resource
+Canonical Resource
 ```
 
-The domain layer must not import AWS SDK packages.
+The domain model must NOT import AWS SDK packages.
+
+Example conceptual resource:
+
+```text
+Resource
+├── ID
+├── Provider
+├── Type
+├── Name
+├── Region
+├── Account
+├── Metadata
+└── Attributes
+```
+
+Do not force every cloud provider to have identical resource semantics.
+
+Provider-specific information may be preserved in metadata/attributes where appropriate.
+
+## Resource Identity
+
+Use stable resource identifiers.
+
+Prefer:
+
+* ARN;
+* AWS resource ID;
+
+depending on the resource.
+
+Do not use display names as primary identity.
+
+A resource name is metadata, not identity.
+
+## AWS Provider
+
+Every discovered resource must be identifiable as belonging to AWS.
+
+Conceptually:
+
+```text
+Provider = AWS
+```
+
+Do not hard-code `"aws"` throughout unrelated application code.
+
+Use an appropriate provider representation from the domain model.
 
 ## Relationships
 
-Discover relationships where AWS data provides sufficient evidence.
+Discover relationships only when they can be established reliably from AWS data.
 
 Examples:
 
@@ -154,8 +250,8 @@ Examples:
 VPC
  └── contains → Subnet
 
-Subnet
- └── contains → EC2
+VPC
+ └── contains → Route Table
 
 VPC
  └── contains → Internet Gateway
@@ -163,120 +259,167 @@ VPC
 VPC
  └── contains → NAT Gateway
 
+Subnet
+ └── contains → EC2 Instance
+
+Route Table
+ └── associated_with → Subnet
+
 Route Table
  └── routes_to → Internet Gateway
 
-ALB
- └── targets → Target Group / EC2 where applicable
-
 RDS
- └── belongs_to → VPC / Subnet Group where applicable
+ └── associated_with → VPC / Subnet Group
+
+ALB
+ └── associated_with → VPC / Subnets
 ```
 
-Do not invent relationships that cannot be reliably established.
-
-## Resource Identity
-
-Use stable identifiers.
-
-Prefer AWS identifiers such as:
-
-* ARN;
-* resource ID;
-
-where appropriate.
-
-Do not use display names as primary identity.
-
-## Region
-
-Discovery must operate against the configured AWS region.
-
-Do not hard-code a region.
-
-## Account
-
-Associate discovered resources with the effective AWS account identity obtained through the authentication layer.
-
-Do not trust an account ID supplied by the user as authoritative identity.
+Do not invent relationships merely because two resources exist in the same VPC.
 
 ## Pagination
 
-AWS APIs may return paginated results.
+Correctly handle AWS API pagination.
 
-Discovery MUST correctly handle pagination for APIs that support it.
+The scanner must not assume that a single AWS API response contains all resources.
 
-Do not assume the first response contains all resources.
+Test pagination behavior.
 
-## AWS API Efficiency
+## Region
 
-Avoid unnecessary API calls.
+Discovery must use the region supplied by the AWS client/configuration layer.
 
-Use appropriate AWS API filters when available.
+Do not hard-code a region.
 
-Do not implement naive:
+The design should allow future scanning of multiple regions.
+
+Multi-region orchestration itself is not required in this phase unless already established by the project.
+
+## Account Identity
+
+Use the effective AWS identity established by Phase 03.
+
+Resources should be associated with the actual AWS account being scanned.
+
+Do not trust an account ID supplied by the frontend as authoritative identity.
+
+## API Efficiency
+
+Avoid unnecessary AWS API calls.
+
+Use AWS API filters when appropriate.
+
+Avoid obvious N×M API call patterns.
+
+Where relationships require additional API calls, document the reason.
+
+Do not prematurely optimize at the cost of correctness.
+
+## Concurrency
+
+Use concurrency only where it provides a clear benefit.
+
+Respect:
 
 ```text
-N × M
+context.Context
 ```
 
-API call patterns without justification.
+and AWS API throttling.
+
+Do not create an uncontrolled goroutine for every AWS resource.
+
+If bounded concurrency is needed, use the project's established concurrency utilities.
 
 ## Error Handling
 
-Define behavior for:
+Handle:
 
 * AccessDenied;
 * ResourceNotFound;
 * throttling;
 * transient AWS errors;
 * malformed responses;
-* partial scanner failures;
-* context cancellation.
+* context cancellation;
+* partial scanner failures.
 
-Do not silently swallow errors.
+Do not silently ignore errors.
 
-A partial scan must be distinguishable from a successful complete scan.
+The result must distinguish between:
 
-## Context
+```text
+Complete discovery
+```
 
-All AWS API calls must accept and propagate:
+and:
+
+```text
+Partial discovery
+```
+
+where appropriate.
+
+## Partial Failure
+
+One failed AWS resource scanner must not automatically destroy successfully discovered resources from other scanners.
+
+Example:
+
+```text
+VPC       ✓
+Subnet    ✓
+EC2       ✓
+RDS       ✗ AccessDenied
+ALB       ✓
+```
+
+The discovery result should preserve successful resources and expose the failure appropriately.
+
+Follow existing project error/result conventions.
+
+## Context Cancellation
+
+Every AWS API operation must receive and respect:
 
 ```go
 context.Context
 ```
 
-A cancelled scan must stop unnecessary AWS work.
+A cancelled scan must stop unnecessary work.
 
 ## Testing
 
-Tests MUST NOT depend on a real AWS account.
-
-Create unit tests using mocks/fakes for AWS API interactions.
+Unit tests MUST NOT require a real AWS account.
 
 Test:
 
-* resource mapping;
+* AWS resource mapping;
+* resource identity;
+* provider assignment;
 * pagination;
 * empty results;
 * API failures;
 * AccessDenied;
+* throttling;
 * partial failures;
 * context cancellation;
 * relationship construction;
-* duplicate resource handling.
+* duplicate resources.
 
-## Optional Integration Test
+Use interfaces/fakes/mocks at appropriate boundaries.
 
-If the repository already supports integration testing, provide an optional real-AWS integration test.
+Do not over-mock internal implementation details.
+
+## Optional AWS Integration Test
+
+If integration testing already exists, an optional real-AWS integration test may be added.
 
 It MUST:
 
 * be explicitly opt-in;
-* never run during normal unit tests;
-* never require committed credentials.
-
-For example, use an environment flag.
+* never run as part of normal unit tests;
+* never require committed credentials;
+* use credentials supplied externally through the AWS SDK credential chain.
 
 Do not make CI depend on a personal AWS account.
 
@@ -284,78 +427,75 @@ Do not make CI depend on a personal AWS account.
 
 Never log:
 
-* access keys;
-* secret keys;
-* session tokens;
-* authorization headers.
+* Access Keys;
+* Secret Access Keys;
+* Session Tokens;
+* Authorization headers;
+* credential configuration values.
 
-Do not return credentials in discovery results.
+Do not include credential material in discovery results.
 
-## Output
+## Transport Independence
 
-Discovery should produce canonical WeaveLens data suitable for:
+Discovery MUST NOT depend on:
+
+* HTTP;
+* REST;
+* gRPC;
+* NATS;
+* Vue;
+* JSON response models.
+
+Discovery produces application/domain data.
+
+Transport layers are responsible for serialization.
+
+## Graph Boundary
+
+This phase may produce relationship data suitable for the Graph Engine.
+
+Do NOT redesign or implement the Graph Engine in this phase.
+
+The intended boundary is:
 
 ```text
-Discovery
-    ↓
+AWS Discovery
+      ↓
+Resources + Relationships
+      ↓
 Graph Engine
 ```
 
-Do not couple the output to:
+## No Database
 
-* Vue;
-* HTTP JSON;
-* gRPC;
-* NATS.
+Do not introduce:
 
-Transport-specific serialization belongs elsewhere.
+* PostgreSQL;
+* Redis;
+* DynamoDB;
+* any persistent database.
 
-## Constraints
+Resource discovery remains runtime/in-memory.
 
-Do NOT:
-
-* add a database;
-* persist AWS resources permanently;
-* add frontend logic;
-* directly expose AWS SDK types;
-* introduce microservices;
-* redesign the graph engine unnecessarily;
-* introduce NATS event publishing unless it already belongs to an existing integration point.
-
-NATS event integration will be handled by its dedicated phase.
+Persistent storage is outside the scope of this phase.
 
 ## Acceptance Criteria
 
 1. WeaveLens can authenticate using the credential strategy from Phase 03.
-2. WeaveLens can construct AWS clients using Phase 04.
-3. WeaveLens can make real AWS API calls.
+2. AWS clients are obtained through Phase 04.
+3. Real AWS APIs are called.
 4. Initial AWS resource types are discovered.
-5. Pagination is handled correctly.
-6. AWS resources are normalized into canonical WeaveLens resources.
-7. Reliable relationships are discovered.
-8. Partial failures are represented explicitly.
-9. Context cancellation works.
-10. Unit tests do not require AWS credentials.
-11. No credential material is logged or exposed.
-12. Discovery remains independent of HTTP, gRPC, NATS, and Vue.
-
-## Manual Verification
-
-With valid user-provided AWS credentials available through the standard AWS credential chain, verify that WeaveLens can:
-
-```text
-1. authenticate
-2. identify the AWS account
-3. connect to the configured region
-4. discover resources
-5. produce canonical resources
-6. produce relationships
-7. construct a graph
-```
-
-Credentials must be supplied externally.
-
-Never commit them.
+5. AWS API pagination is handled.
+6. Resources are normalized into canonical WeaveLens resources.
+7. Resources identify AWS as their provider.
+8. Reliable relationships are discovered.
+9. Partial failures are represented appropriately.
+10. Context cancellation is supported.
+11. Unit tests do not require AWS credentials.
+12. AWS SDK types do not leak into the domain layer.
+13. Discovery does not depend on HTTP, gRPC, NATS, or Vue.
+14. The design leaves a clean boundary for future Azure/GCP providers.
+15. Azure/GCP implementation is NOT added in this phase.
 
 ## Verification
 
@@ -366,18 +506,18 @@ go build ./...
 go test ./...
 ```
 
-Run linting.
-
-If an opt-in AWS integration test exists, document exactly how to run it.
+Run all project-configured linters and static analysis tools.
 
 Review the complete diff.
+
+Verify that no credentials or secrets were added to source control.
 
 ## Git
 
 Create exactly one focused commit:
 
 ```text
-feat(discovery): implement real aws resource discovery
+feat(discovery): implement aws resource discovery
 ```
 
-Do NOT automatically proceed to Phase 06.
+Do NOT automatically proceed to the next phase.

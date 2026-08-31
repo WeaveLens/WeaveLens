@@ -1,4 +1,4 @@
-# Phase 06 — NATS JetStream Event Architecture
+# Phase 08 — NATS JetStream Event Architecture
 
 ## Objective
 

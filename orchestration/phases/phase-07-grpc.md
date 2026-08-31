@@ -1,4 +1,4 @@
-# Phase 05 — gRPC Contracts
+# Phase 07 — gRPC Contracts
 
 ## Objective
 
