@@ -64,7 +64,7 @@ func parseTime(t time.Time) string {
 	return t.Format(time.RFC3339)
 }
 
-func NewRouter(discovery service.DiscoveryService, graph service.GraphService, connection ConnectionStatusGetter) *http.ServeMux {
+func NewRouter(discovery service.DiscoveryService, graph service.GraphService, connection ConnectionStatusGetter, export service.ExportService) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -162,6 +162,35 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 
 	mux.HandleFunc("GET /api/scans", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, []ScanResponse{})
+	})
+
+	mux.HandleFunc("GET /api/scans/{scanId}/export", func(w http.ResponseWriter, r *http.Request) {
+		scanID := r.PathValue("scanId")
+		format := service.ExportFormat(r.URL.Query().Get("format"))
+		if format == "" {
+			format = service.ExportFormatJSON
+		}
+
+		data, err := export.ExportGraph(r.Context(), scanID, format)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		switch format {
+		case service.ExportFormatJSON:
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Content-Disposition", "attachment; filename=\"graph.json\"")
+		case service.ExportFormatDrawIO:
+			w.Header().Set("Content-Type", "application/xml")
+			w.Header().Set("Content-Disposition", "attachment; filename=\"graph.drawio\"")
+		case service.ExportFormatSVG:
+			w.Header().Set("Content-Type", "image/svg+xml")
+			w.Header().Set("Content-Disposition", "attachment; filename=\"graph.svg\"")
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write(data)
 	})
 
 	return mux

@@ -66,8 +66,16 @@ func (f *fakeConnectionStatus) GetConnectionStatus() transport.ConnectionStatus 
 	}
 }
 
+type fakeExportService struct {
+	service.ExportService
+}
+
+func (f *fakeExportService) ExportGraph(ctx context.Context, scanID string, format service.ExportFormat) ([]byte, error) {
+	return []byte(`{"exported":true}`), nil
+}
+
 func TestHealthEndpoint(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{})
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -83,7 +91,7 @@ func TestHealthEndpoint(t *testing.T) {
 }
 
 func TestReadyEndpoint(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{})
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -99,7 +107,7 @@ func TestReadyEndpoint(t *testing.T) {
 }
 
 func TestStartScan(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{})
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -115,7 +123,7 @@ func TestStartScan(t *testing.T) {
 }
 
 func TestGetScanStatus(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{})
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -131,7 +139,7 @@ func TestGetScanStatus(t *testing.T) {
 }
 
 func TestGetGraph(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{})
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -147,7 +155,7 @@ func TestGetGraph(t *testing.T) {
 }
 
 func TestGetResource(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{})
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -163,7 +171,7 @@ func TestGetResource(t *testing.T) {
 }
 
 func TestGetRelationships(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{})
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -179,7 +187,7 @@ func TestGetRelationships(t *testing.T) {
 }
 
 func TestScanStatusTimestamp(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{})
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -200,5 +208,41 @@ func TestScanStatusTimestamp(t *testing.T) {
 
 	if _, err := time.Parse(time.RFC3339, scan.UpdatedAt); err != nil {
 		t.Errorf("UpdatedAt is not RFC3339: %v", err)
+	}
+}
+
+func TestExportGraph(t *testing.T) {
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/api/scans/scan-123/export?format=json")
+	if err != nil {
+		t.Fatalf("GET /api/scans/scan-123/export error = %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("GET /api/scans/scan-123/export status = %v, want %v", resp.StatusCode, http.StatusOK)
+	}
+
+	if ct := resp.Header.Get("Content-Type"); ct != "application/json" {
+		t.Errorf("Content-Type = %v, want application/json", ct)
+	}
+}
+
+func TestExportGraph_DefaultFormat(t *testing.T) {
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/api/scans/scan-123/export")
+	if err != nil {
+		t.Fatalf("GET /api/scans/scan-123/export error = %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("GET /api/scans/scan-123/export status = %v, want %v", resp.StatusCode, http.StatusOK)
 	}
 }

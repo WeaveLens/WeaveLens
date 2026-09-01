@@ -100,8 +100,9 @@ func (a *App) Run(ctx context.Context) error {
 
 	discoveryService := service.NewDiscoveryService(a.eventBus, a.logger, a.discovery)
 	graphService := service.NewGraphService(a.eventBus, a.logger, a.discovery)
+	exportService := service.NewExportService(graphService)
 
-	mux := transport.NewRouter(discoveryService, graphService, a)
+	mux := transport.NewRouter(discoveryService, graphService, a, exportService)
 	server, err := transport.StartServer(":"+a.config.ServerPort, mux)
 	if err != nil {
 		return fmt.Errorf("failed to start server: %w", err)
