@@ -26,6 +26,7 @@ onMounted(async () => {
 watch(() => scanStore.currentScan?.id, async (scanId) => {
   if (scanId) {
     localStorage.setItem('weavelens_scan_id', scanId)
+    graphStore.clearGraph()
     await graphStore.loadGraph(scanId)
     await scanStore.refreshStatus(scanId)
   }

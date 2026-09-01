@@ -101,7 +101,7 @@ func New(cfg *Config) *App {
 
 			factory := client.NewFactory()
 			clients := factory.BuildClients(awsCfg)
-			disc = discovery.NewServiceFromConfig(discovery.ServiceConfigInput{Clients: clients})
+			disc = discovery.NewServiceFromConfig(discovery.ServiceConfigInput{Clients: clients, Region: cfg.AWSRegion})
 		}
 	}
 
@@ -125,6 +125,8 @@ func (a *App) Run(ctx context.Context) error {
 			a.logger.Error("failed to complete scan", "error", err, "scanID", scanID)
 		}
 	})
+
+	discoveryService.SetGraphService(graphService)
 	exportService := service.NewExportService(graphService)
 
 	mux := transport.NewRouter(discoveryService, graphService, a, exportService, a.logger)

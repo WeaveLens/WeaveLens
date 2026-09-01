@@ -8,6 +8,7 @@ type DiscoveryService interface {
 	CancelScan(ctx context.Context, scanID string) error
 	ListResources(ctx context.Context, scanID, category, resourceType string) ([]Resource, error)
 	CompleteScan(ctx context.Context, scanID string, nodeCount, edgeCount int) error
+	SetGraphService(gs GraphService)
 }
 
 type GraphService interface {
@@ -15,6 +16,7 @@ type GraphService interface {
 	GetResource(ctx context.Context, resourceID string) (Resource, error)
 	GetNeighbors(ctx context.Context, resourceID string) ([]Resource, error)
 	GetRelationships(ctx context.Context, resourceID string) ([]Relationship, error)
+	SetScanRegion(scanID, region string)
 }
 
 type Resource struct {

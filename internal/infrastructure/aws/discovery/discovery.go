@@ -90,7 +90,9 @@ func (s *Service) Discover(ctx context.Context, request DiscoveryRequest) (*Disc
 
 	resources, errs := s.scanConcurrently(ctx)
 	for _, res := range resources {
-		result.AddResource(res)
+		if request.Region == "" || res.Region() == request.Region {
+			result.AddResource(res)
+		}
 	}
 	for _, err := range errs {
 		result.AddError(err)

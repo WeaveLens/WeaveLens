@@ -10,10 +10,11 @@ import (
 
 type ComputeScanner struct {
 	client EC2ScannerAPI
+	region string
 }
 
-func NewComputeScanner(client EC2ScannerAPI) *ComputeScanner {
-	return &ComputeScanner{client: client}
+func NewComputeScanner(client EC2ScannerAPI, region string) *ComputeScanner {
+	return &ComputeScanner{client: client, region: region}
 }
 
 func (s *ComputeScanner) Name() string {
@@ -74,6 +75,7 @@ func (s *ComputeScanner) Scan(ctx context.Context) ([]*resource.Resource, error)
 				name,
 				resource.WithMetadata(metadata),
 				resource.WithTags(tags),
+				resource.WithRegion(s.region),
 			)
 				if err != nil {
 					continue

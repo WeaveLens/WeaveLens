@@ -97,6 +97,13 @@ export const useGraphStore = defineStore('graph', () => {
     selectedResource.value = null
   }
 
+  function clearGraph() {
+    nodes.value = []
+    edges.value = []
+    selectedResource.value = null
+    error.value = null
+  }
+
   return {
     nodes,
     edges,
@@ -116,6 +123,7 @@ export const useGraphStore = defineStore('graph', () => {
     setSearch,
     setCategoryFilter,
     clearSelection,
+    clearGraph,
   }
 })
 

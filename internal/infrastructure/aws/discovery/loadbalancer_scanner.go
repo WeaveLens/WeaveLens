@@ -10,10 +10,11 @@ import (
 
 type LoadBalancerScanner struct {
 	client ELBv2API
+	region string
 }
 
-func NewLoadBalancerScanner(client ELBv2API) *LoadBalancerScanner {
-	return &LoadBalancerScanner{client: client}
+func NewLoadBalancerScanner(client ELBv2API, region string) *LoadBalancerScanner {
+	return &LoadBalancerScanner{client: client, region: region}
 }
 
 func (s *LoadBalancerScanner) Name() string {
@@ -56,6 +57,7 @@ func (s *LoadBalancerScanner) Scan(ctx context.Context) ([]*resource.Resource, e
 				resource.CategoryNetwork,
 				*lb.LoadBalancerName,
 				resource.WithMetadata(metadata),
+				resource.WithRegion(s.region),
 			)
 			if err != nil {
 				continue

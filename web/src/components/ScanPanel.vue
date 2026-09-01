@@ -3,9 +3,10 @@ import { ref, computed } from 'vue'
 import { useScanStore } from '../stores/scan'
 
 const scanStore = useScanStore()
-const region = ref('us-east-1')
+const region = ref('')
 
 const regions = [
+  { value: '', label: 'All Regions' },
   // US Regions
   { value: 'us-east-1', label: 'US East (N. Virginia)' },
   { value: 'us-east-2', label: 'US East (Ohio)' },
@@ -51,7 +52,6 @@ const regions = [
 ]
 
 async function handleStartScan() {
-  if (!region.value.trim()) return
   await scanStore.createScan({ region: region.value.trim() })
 }
 

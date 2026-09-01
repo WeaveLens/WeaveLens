@@ -10,10 +10,11 @@ import (
 
 type DatabaseScanner struct {
 	client RDSAPI
+	region string
 }
 
-func NewDatabaseScanner(client RDSAPI) *DatabaseScanner {
-	return &DatabaseScanner{client: client}
+func NewDatabaseScanner(client RDSAPI, region string) *DatabaseScanner {
+	return &DatabaseScanner{client: client, region: region}
 }
 
 func (s *DatabaseScanner) Name() string {
@@ -64,6 +65,7 @@ func (s *DatabaseScanner) Scan(ctx context.Context) ([]*resource.Resource, error
 				*db.DBInstanceIdentifier,
 				resource.WithMetadata(metadata),
 				resource.WithTags(tags),
+				resource.WithRegion(s.region),
 			)
 			if err != nil {
 				continue

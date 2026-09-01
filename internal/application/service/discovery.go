@@ -17,6 +17,11 @@ type discoveryService struct {
 	mu        sync.RWMutex
 	scans     map[string]*ScanRecord
 	discovery discovery.ResourceDiscovery
+	graphService GraphService
+}
+
+func (s *discoveryService) SetGraphService(gs GraphService) {
+	s.graphService = gs
 }
 
 type ScanRecord struct {
@@ -48,6 +53,10 @@ func (s *discoveryService) StartScan(ctx context.Context, region string) (string
 		UpdatedAt: time.Now(),
 	}
 	s.mu.Unlock()
+
+	if s.graphService != nil {
+		s.graphService.SetScanRegion(scanID, region)
+	}
 
 	evt := &event.ScanStartedEvent{
 		ScanID: scanID,

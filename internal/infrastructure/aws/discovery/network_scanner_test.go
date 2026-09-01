@@ -62,7 +62,7 @@ func TestNetworkScanner_ScanVPCs(t *testing.T) {
 		describeSubnetsOutput: &ec2.DescribeSubnetsOutput{},
 	}
 
-	scanner := NewNetworkScanner(mockClient)
+	scanner := NewNetworkScanner(mockClient, "us-east-1")
 	resources, err := scanner.Scan(context.Background())
 	if err != nil {
 		t.Fatalf("Scan() unexpected error: %v", err)
@@ -94,7 +94,7 @@ func TestNetworkScanner_ScanEmpty(t *testing.T) {
 		describeSubnetsOutput: &ec2.DescribeSubnetsOutput{},
 	}
 
-	scanner := NewNetworkScanner(mockClient)
+	scanner := NewNetworkScanner(mockClient, "us-east-1")
 	resources, err := scanner.Scan(context.Background())
 	if err != nil {
 		t.Fatalf("Scan() unexpected error: %v", err)
@@ -110,7 +110,7 @@ func TestNetworkScanner_APIError(t *testing.T) {
 		describeVpcsErr: errors.New("AccessDenied: not authorized"),
 	}
 
-	scanner := NewNetworkScanner(mockClient)
+	scanner := NewNetworkScanner(mockClient, "us-east-1")
 	_, err := scanner.Scan(context.Background())
 	if err == nil {
 		t.Fatal("Scan() expected error, got nil")
@@ -128,7 +128,7 @@ func TestNetworkScanner_ContextCancellation(t *testing.T) {
 		describeSubnetsOutput: &ec2.DescribeSubnetsOutput{},
 	}
 
-	scanner := NewNetworkScanner(mockClient)
+	scanner := NewNetworkScanner(mockClient, "us-east-1")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 

@@ -19,6 +19,7 @@ type graphService struct {
 	graphs    map[string]*graph.Graph
 	discovery discovery.ResourceDiscovery
 	onScanComplete func(scanID string, nodeCount, edgeCount int)
+	scanRegions map[string]string
 }
 
 func NewGraphService(eventBus *nats.EventBus, logger *slog.Logger, discovery discovery.ResourceDiscovery) GraphService {
@@ -27,6 +28,7 @@ func NewGraphService(eventBus *nats.EventBus, logger *slog.Logger, discovery dis
 		logger:    logger,
 		graphs:    make(map[string]*graph.Graph),
 		discovery: discovery,
+		scanRegions: make(map[string]string),
 	}
 }
 
@@ -37,7 +39,14 @@ func NewGraphServiceWithCallback(eventBus *nats.EventBus, logger *slog.Logger, d
 		graphs:    make(map[string]*graph.Graph),
 		discovery: discovery,
 		onScanComplete: onScanComplete,
+		scanRegions: make(map[string]string),
 	}
+}
+
+func (s *graphService) SetScanRegion(scanID, region string) {
+	s.mu.Lock()
+	s.scanRegions[scanID] = region
+	s.mu.Unlock()
 }
 
 func (s *graphService) buildGraph(scanID string) (*graph.Graph, error) {
@@ -53,8 +62,15 @@ func (s *graphService) buildGraph(scanID string) (*graph.Graph, error) {
 		return graph.NewGraph(), nil
 	}
 
+	region := ""
+	if scanID != "" {
+		s.mu.RLock()
+		region = s.scanRegions[scanID]
+		s.mu.RUnlock()
+	}
+
 	ctx := context.Background()
-	result, err := s.discovery.Discover(ctx, discovery.DiscoveryRequest{Region: ""})
+	result, err := s.discovery.Discover(ctx, discovery.DiscoveryRequest{Region: region})
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover resources: %w", err)
 	}

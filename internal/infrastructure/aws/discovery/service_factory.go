@@ -6,13 +6,14 @@ import (
 
 type ServiceConfigInput struct {
 	Clients *client.Clients
+	Region  string
 }
 
 func NewServiceFromConfig(cfg ServiceConfigInput) *Service {
-	networkScanner := NewNetworkScanner(cfg.Clients.EC2)
-	computeScanner := NewComputeScanner(cfg.Clients.EC2)
-	databaseScanner := NewDatabaseScanner(cfg.Clients.RDS)
-	loadBalancerScanner := NewLoadBalancerScanner(cfg.Clients.ELBv2)
+	networkScanner := NewNetworkScanner(cfg.Clients.EC2, cfg.Region)
+	computeScanner := NewComputeScanner(cfg.Clients.EC2, cfg.Region)
+	databaseScanner := NewDatabaseScanner(cfg.Clients.RDS, cfg.Region)
+	loadBalancerScanner := NewLoadBalancerScanner(cfg.Clients.ELBv2, cfg.Region)
 	relationshipBuilder := NewRelationshipBuilder()
 
 	return NewService(
@@ -22,10 +23,10 @@ func NewServiceFromConfig(cfg ServiceConfigInput) *Service {
 }
 
 func NewServiceFromConfigWithResilience(cfg ServiceConfigInput, resilienceCfg ServiceConfig) *Service {
-	networkScanner := NewNetworkScanner(cfg.Clients.EC2)
-	computeScanner := NewComputeScanner(cfg.Clients.EC2)
-	databaseScanner := NewDatabaseScanner(cfg.Clients.RDS)
-	loadBalancerScanner := NewLoadBalancerScanner(cfg.Clients.ELBv2)
+	networkScanner := NewNetworkScanner(cfg.Clients.EC2, cfg.Region)
+	computeScanner := NewComputeScanner(cfg.Clients.EC2, cfg.Region)
+	databaseScanner := NewDatabaseScanner(cfg.Clients.RDS, cfg.Region)
+	loadBalancerScanner := NewLoadBalancerScanner(cfg.Clients.ELBv2, cfg.Region)
 	relationshipBuilder := NewRelationshipBuilder()
 
 	return NewServiceWithConfig(

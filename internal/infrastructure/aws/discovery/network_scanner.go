@@ -11,10 +11,11 @@ import (
 
 type NetworkScanner struct {
 	client EC2API
+	region string
 }
 
-func NewNetworkScanner(client EC2API) *NetworkScanner {
-	return &NetworkScanner{client: client}
+func NewNetworkScanner(client EC2API, region string) *NetworkScanner {
+	return &NetworkScanner{client: client, region: region}
 }
 
 func (s *NetworkScanner) Name() string {
@@ -88,16 +89,17 @@ func (s *NetworkScanner) scanVPCs(ctx context.Context) ([]*resource.Resource, er
 				name = *vpc.VpcId
 			}
 
-			res, err := resource.NewResource(
-				resource.ResourceID(*vpc.VpcId),
-				resource.ResourceType("VPC"),
-				resource.CategoryNetwork,
-				name,
-				resource.WithMetadata(map[string]string{
-					"cidr": safePtr(vpc.CidrBlock),
-				}),
-				resource.WithTags(tags),
-			)
+		res, err := resource.NewResource(
+			resource.ResourceID(*vpc.VpcId),
+			resource.ResourceType("VPC"),
+			resource.CategoryNetwork,
+			name,
+			resource.WithMetadata(map[string]string{
+				"cidr": safePtr(vpc.CidrBlock),
+			}),
+			resource.WithTags(tags),
+			resource.WithRegion(s.region),
+		)
 			if err != nil {
 				continue
 			}
@@ -138,14 +140,15 @@ func (s *NetworkScanner) scanSubnets(ctx context.Context) ([]*resource.Resource,
 				"az":         safePtr(subnet.AvailabilityZone),
 			}
 
-			res, err := resource.NewResource(
-				resource.ResourceID(*subnet.SubnetId),
-				resource.ResourceType("Subnet"),
-				resource.CategoryNetwork,
-				name,
-				resource.WithMetadata(metadata),
-				resource.WithTags(tags),
-			)
+		res, err := resource.NewResource(
+			resource.ResourceID(*subnet.SubnetId),
+			resource.ResourceType("Subnet"),
+			resource.CategoryNetwork,
+			name,
+			resource.WithMetadata(metadata),
+			resource.WithTags(tags),
+			resource.WithRegion(s.region),
+		)
 			if err != nil {
 				continue
 			}
@@ -180,16 +183,17 @@ func (s *NetworkScanner) scanRouteTables(ctx context.Context) ([]*resource.Resou
 				name = *rt.RouteTableId
 			}
 
-			res, err := resource.NewResource(
-				resource.ResourceID(*rt.RouteTableId),
-				resource.ResourceType("RouteTable"),
-				resource.CategoryNetwork,
-				name,
-				resource.WithMetadata(map[string]string{
-					"vpc_id": safePtr(rt.VpcId),
-				}),
-				resource.WithTags(tags),
-			)
+		res, err := resource.NewResource(
+			resource.ResourceID(*rt.RouteTableId),
+			resource.ResourceType("RouteTable"),
+			resource.CategoryNetwork,
+			name,
+			resource.WithMetadata(map[string]string{
+				"vpc_id": safePtr(rt.VpcId),
+			}),
+			resource.WithTags(tags),
+			resource.WithRegion(s.region),
+		)
 			if err != nil {
 				continue
 			}
@@ -232,16 +236,17 @@ func (s *NetworkScanner) scanInternetGateways(ctx context.Context) ([]*resource.
 				}
 			}
 
-			res, err := resource.NewResource(
-				resource.ResourceID(*igw.InternetGatewayId),
-				resource.ResourceType("InternetGateway"),
-				resource.CategoryNetwork,
-				name,
-				resource.WithMetadata(map[string]string{
-					"vpc_id": vpcID,
-				}),
-				resource.WithTags(tags),
-			)
+		res, err := resource.NewResource(
+			resource.ResourceID(*igw.InternetGatewayId),
+			resource.ResourceType("InternetGateway"),
+			resource.CategoryNetwork,
+			name,
+			resource.WithMetadata(map[string]string{
+				"vpc_id": vpcID,
+			}),
+			resource.WithTags(tags),
+			resource.WithRegion(s.region),
+		)
 			if err != nil {
 				continue
 			}
@@ -286,14 +291,15 @@ func (s *NetworkScanner) scanNATGateways(ctx context.Context) ([]*resource.Resou
 				metadata["subnet_id"] = *nat.SubnetId
 			}
 
-			res, err := resource.NewResource(
-				resource.ResourceID(*nat.NatGatewayId),
-				resource.ResourceType("NATGateway"),
-				resource.CategoryNetwork,
-				name,
-				resource.WithMetadata(metadata),
-				resource.WithTags(tags),
-			)
+		res, err := resource.NewResource(
+			resource.ResourceID(*nat.NatGatewayId),
+			resource.ResourceType("NATGateway"),
+			resource.CategoryNetwork,
+			name,
+			resource.WithMetadata(metadata),
+			resource.WithTags(tags),
+			resource.WithRegion(s.region),
+		)
 			if err != nil {
 				continue
 			}
@@ -328,18 +334,19 @@ func (s *NetworkScanner) scanSecurityGroups(ctx context.Context) ([]*resource.Re
 				name = *sg.GroupName
 			}
 
-			res, err := resource.NewResource(
-				resource.ResourceID(*sg.GroupId),
-				resource.ResourceType("SecurityGroup"),
-				resource.CategorySecurity,
-				name,
-				resource.WithMetadata(map[string]string{
-					"group_id":   *sg.GroupId,
-					"group_name": *sg.GroupName,
-					"vpc_id":     safePtr(sg.VpcId),
-				}),
-				resource.WithTags(tags),
-			)
+		res, err := resource.NewResource(
+			resource.ResourceID(*sg.GroupId),
+			resource.ResourceType("SecurityGroup"),
+			resource.CategorySecurity,
+			name,
+			resource.WithMetadata(map[string]string{
+				"group_id":   *sg.GroupId,
+				"group_name": *sg.GroupName,
+				"vpc_id":     safePtr(sg.VpcId),
+			}),
+			resource.WithTags(tags),
+			resource.WithRegion(s.region),
+		)
 			if err != nil {
 				continue
 			}
