@@ -1,6 +1,6 @@
 module github.com/elip/WeaveLens
 
-go 1.26
+go 1.25.0
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.45.1
@@ -11,6 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/rds v1.126.1
 	github.com/aws/aws-sdk-go-v2/service/sts v1.47.1
 	github.com/aws/smithy-go v1.28.1
+	github.com/google/uuid v1.6.0
 	github.com/nats-io/nats.go v1.53.1
 )
 
@@ -24,11 +25,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/signin v1.7.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.35.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.40.1 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/nats-io/nkeys v0.4.15 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	golang.org/x/crypto v0.55.0 // indirect
-	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 )

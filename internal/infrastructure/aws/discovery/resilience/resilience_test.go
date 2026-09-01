@@ -156,6 +156,13 @@ func TestRateLimiter_ContextCancellation(t *testing.T) {
 	rl := NewRateLimiter(1, 1)
 	defer rl.Close()
 
+	// Consume the initial token
+	ctx := context.Background()
+	if err := rl.Wait(ctx); err != nil {
+		t.Fatalf("Wait() unexpected error: %v", err)
+	}
+
+	// Now wait with a cancelled context
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
