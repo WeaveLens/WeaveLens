@@ -22,6 +22,8 @@ type App struct {
 	logger    *slog.Logger
 	eventBus  *nats.EventBus
 	discovery discovery.ResourceDiscovery
+	identity  *credential.Identity
+	region    string
 }
 
 func New(cfg *Config) *App {
@@ -58,28 +60,29 @@ func New(cfg *Config) *App {
 	}
 
 	var disc discovery.ResourceDiscovery
+	var identity *credential.Identity
 	if cfg.AWSRegion != "" {
 		awsCfg, err := provider.Load(context.Background(), cfg.AWSRegion)
 		if err != nil {
 			logger.Error("failed to load AWS config", "error", err)
-			os.Exit(1)
+			logger.Warn("continuing without AWS connection - set AWS_REGION and credentials to enable")
+		} else {
+			identity, err = credential.VerifyIdentity(context.Background(), awsCfg)
+			if err != nil {
+				logger.Error("failed to verify AWS identity", "error", err)
+				logger.Warn("continuing without AWS connection - check credentials")
+			} else {
+				logger.Info("AWS identity verified",
+					"accountID", identity.AccountID,
+					"arn", identity.ARN,
+					"userID", identity.UserID,
+				)
+			}
+
+			factory := client.NewFactory()
+			clients := factory.BuildClients(awsCfg)
+			disc = discovery.NewServiceFromConfig(discovery.ServiceConfig{Clients: clients})
 		}
-
-		identity, err := credential.VerifyIdentity(context.Background(), awsCfg)
-		if err != nil {
-			logger.Error("failed to verify AWS identity", "error", err)
-			os.Exit(1)
-		}
-
-		logger.Info("AWS identity verified",
-			"accountID", identity.AccountID,
-			"arn", identity.ARN,
-			"userID", identity.UserID,
-		)
-
-		factory := client.NewFactory()
-		clients := factory.BuildClients(awsCfg)
-		disc = discovery.NewServiceFromConfig(discovery.ServiceConfig{Clients: clients})
 	}
 
 	return &App{
@@ -87,6 +90,8 @@ func New(cfg *Config) *App {
 		logger:    logger,
 		eventBus:  eventBus,
 		discovery: disc,
+		identity:  identity,
+		region:    cfg.AWSRegion,
 	}
 }
 
@@ -96,7 +101,7 @@ func (a *App) Run(ctx context.Context) error {
 	discoveryService := service.NewDiscoveryService(a.eventBus, a.logger, a.discovery)
 	graphService := service.NewGraphService(a.eventBus, a.logger, a.discovery)
 
-	mux := transport.NewRouter(discoveryService, graphService)
+	mux := transport.NewRouter(discoveryService, graphService, a)
 	server, err := transport.StartServer(":"+a.config.ServerPort, mux)
 	if err != nil {
 		return fmt.Errorf("failed to start server: %w", err)
@@ -127,3 +132,24 @@ func (a *App) Run(ctx context.Context) error {
 	a.logger.Info("server stopped gracefully")
 	return nil
 }
+
+func (a *App) GetConnectionStatus() transport.ConnectionStatus {
+	if a.identity == nil {
+		return transport.ConnectionStatus{
+			State:   "not_connected",
+			Message: "AWS credentials not configured. Set AWS_REGION and ensure credentials are available.",
+		}
+	}
+
+	return transport.ConnectionStatus{
+		State:            "connected",
+		AccountID:        a.identity.AccountID,
+		ARN:              a.identity.ARN,
+		Region:           a.region,
+		CredentialSource: "default",
+		Message:          "",
+	}
+}
+
+// ConnectionStatus is an alias for transport.ConnectionStatus for backward compatibility.
+type ConnectionStatus = transport.ConnectionStatus
