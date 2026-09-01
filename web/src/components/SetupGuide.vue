@@ -53,10 +53,25 @@ async function checkConnection() {
           <li>
             <strong>Start WeaveLens with the profile</strong>
             <p>Set the <code>AWS_PROFILE</code> environment variable when starting WeaveLens:</p>
+            <p><em>Option A: Run from source</em></p>
             <div class="code-block">
-              <code>AWS_PROFILE=weavelens ./weavelens</code>
-              <button @click="copyToClipboard('AWS_PROFILE=weavelens ./weavelens', 'cmd2')" class="copy-btn">
+              <code>AWS_PROFILE=weavelens AWS_REGION=us-east-1 go run ./cmd/weavelens</code>
+              <button @click="copyToClipboard('AWS_PROFILE=weavelens AWS_REGION=us-east-1 go run ./cmd/weavelens', 'cmd2')" class="copy-btn">
                 {{ copied === 'cmd2' ? '✓ Copied' : 'Copy' }}
+              </button>
+            </div>
+            <p><em>Option B: Build and run binary</em></p>
+            <div class="code-block">
+              <code>go build -o weavelens ./cmd/weavelens && AWS_PROFILE=weavelens AWS_REGION=us-east-1 ./weavelens</code>
+              <button @click="copyToClipboard('go build -o weavelens ./cmd/weavelens\nAWS_PROFILE=weavelens AWS_REGION=us-east-1 ./weavelens', 'cmd2b')" class="copy-btn">
+                {{ copied === 'cmd2b' ? '✓ Copied' : 'Copy' }}
+              </button>
+            </div>
+            <p><em>Or export variables first</em></p>
+            <div class="code-block">
+              <code>export AWS_PROFILE=weavelens&#10;export AWS_REGION=us-east-1&#10;go run ./cmd/weavelens</code>
+              <button @click="copyToClipboard('export AWS_PROFILE=weavelens\nexport AWS_REGION=us-east-1\ngo run ./cmd/weavelens', 'cmd2c')" class="copy-btn">
+                {{ copied === 'cmd2c' ? '✓ Copied' : 'Copy' }}
               </button>
             </div>
           </li>
@@ -73,14 +88,44 @@ async function checkConnection() {
           Alternatively, you can use environment variables:
         </p>
         <div class="code-block">
-          <code>AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1 ./weavelens</code>
-          <button @click="copyToClipboard('AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1 ./weavelens', 'cmd3')" class="copy-btn">
+          <code>AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1 go run ./cmd/weavelens</code>
+          <button @click="copyToClipboard('AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1 go run ./cmd/weavelens', 'cmd3')" class="copy-btn">
             {{ copied === 'cmd3' ? '✓ Copied' : 'Copy' }}
+          </button>
+        </div>
+        <p>Or after building:</p>
+        <div class="code-block">
+          <code>AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1 ./weavelens</code>
+          <button @click="copyToClipboard('AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1 ./weavelens', 'cmd3b')" class="copy-btn">
+            {{ copied === 'cmd3b' ? '✓ Copied' : 'Copy' }}
           </button>
         </div>
         <p class="warning">
           ⚠ Environment variables are suitable for CI/CD pipelines but should be
           managed through secret stores in production.
+        </p>
+      </section>
+
+      <section class="setup-section">
+        <h2>LocalStack (Local AWS Emulator)</h2>
+        <p>
+          For local development without real AWS credentials, use LocalStack:
+        </p>
+        <div class="code-block">
+          <code>docker run -d --name localstack -p 4566:4566 localstack/localstack</code>
+          <button @click="copyToClipboard('docker run -d --name localstack -p 4566:4566 localstack/localstack', 'ls1')" class="copy-btn">
+            {{ copied === 'ls1' ? '✓ Copied' : 'Copy' }}
+          </button>
+        </div>
+        <p>Then configure WeaveLens to use LocalStack:</p>
+        <div class="code-block">
+          <code>export AWS_ENDPOINT_URL=http://localhost:4566&#10;export AWS_ACCESS_KEY_ID=test&#10;export AWS_SECRET_ACCESS_KEY=test&#10;export AWS_REGION=us-east-1&#10;go run ./cmd/weavelens</code>
+          <button @click="copyToClipboard('export AWS_ENDPOINT_URL=http://localhost:4566\nexport AWS_ACCESS_KEY_ID=test\nexport AWS_SECRET_ACCESS_KEY=test\nexport AWS_REGION=us-east-1\ngo run ./cmd/weavelens', 'ls2')" class="copy-btn">
+            {{ copied === 'ls2' ? '✓ Copied' : 'Copy' }}
+          </button>
+        </div>
+        <p class="note">
+          LocalStack accepts any credential values. The endpoint URL is required to redirect AWS API calls to LocalStack.
         </p>
       </section>
 
@@ -91,9 +136,16 @@ async function checkConnection() {
           must have permission to assume the target role.
         </p>
         <div class="code-block">
-          <code>AWS_ROLE_ARN=arn:aws:iam::123456789012:role/WeaveLensScanner ./weavelens</code>
-          <button @click="copyToClipboard('AWS_ROLE_ARN=arn:aws:iam::123456789012:role/WeaveLensScanner ./weavelens', 'cmd4')" class="copy-btn">
+          <code>AWS_ROLE_ARN=arn:aws:iam::123456789012:role/WeaveLensScanner go run ./cmd/weavelens</code>
+          <button @click="copyToClipboard('AWS_ROLE_ARN=arn:aws:iam::123456789012:role/WeaveLensScanner go run ./cmd/weavelens', 'cmd4')" class="copy-btn">
             {{ copied === 'cmd4' ? '✓ Copied' : 'Copy' }}
+          </button>
+        </div>
+        <p>Or after building:</p>
+        <div class="code-block">
+          <code>AWS_ROLE_ARN=arn:aws:iam::123456789012:role/WeaveLensScanner ./weavelens</code>
+          <button @click="copyToClipboard('AWS_ROLE_ARN=arn:aws:iam::123456789012:role/WeaveLensScanner ./weavelens', 'cmd4b')" class="copy-btn">
+            {{ copied === 'cmd4b' ? '✓ Copied' : 'Copy' }}
           </button>
         </div>
         <p class="note">
@@ -256,6 +308,7 @@ async function checkConnection() {
   font-size: 13px;
   word-break: break-all;
   flex: 1;
+  white-space: pre-wrap;
 }
 
 .copy-btn {
