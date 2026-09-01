@@ -133,6 +133,10 @@ func (h *ScanHistory) truncate() {
 func (h *ScanHistory) load() {
 	data, err := os.ReadFile(h.filePath)
 	if err != nil {
+		h.data = ScanHistoryData{
+			Scans:  []ScanHistoryEntry{},
+			Graphs: map[string]GraphData{},
+		}
 		return
 	}
 	var history ScanHistoryData

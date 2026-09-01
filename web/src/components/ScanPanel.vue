@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useScanStore } from '../stores/scan'
 import { useGraphStore } from '../stores/graph'
 import { getRegions, type RegionInfo } from '../api/client'
@@ -8,6 +8,8 @@ const scanStore = useScanStore()
 const graphStore = useGraphStore()
 const region = ref('')
 const regions = ref<RegionInfo[]>([{ value: '', label: 'All Regions' }])
+
+let pollInterval: ReturnType<typeof setInterval> | null = null
 
 onMounted(async () => {
   try {
@@ -18,6 +20,16 @@ onMounted(async () => {
   }
 
   await scanStore.fetchScans()
+
+  pollInterval = setInterval(() => {
+    scanStore.fetchScansSilent()
+  }, 1000)
+})
+
+onUnmounted(() => {
+  if (pollInterval) {
+    clearInterval(pollInterval)
+  }
 })
 
 function getRegionLabel(regionCode?: string): string {

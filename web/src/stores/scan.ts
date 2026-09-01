@@ -16,10 +16,25 @@ export const useScanStore = defineStore('scan', () => {
     try {
       const data = await getScans()
       scans.value = data
+      if (currentScan.value && !data.find(s => s.id === currentScan.value!.id)) {
+        currentScan.value = null
+      }
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to fetch scans'
     } finally {
       loading.value = false
+    }
+  }
+
+  async function fetchScansSilent() {
+    try {
+      const data = await getScans()
+      scans.value = data
+      if (currentScan.value && !data.find(s => s.id === currentScan.value!.id)) {
+        currentScan.value = null
+      }
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : 'Failed to fetch scans'
     }
   }
 
@@ -73,6 +88,7 @@ export const useScanStore = defineStore('scan', () => {
     error,
     activeScan,
     fetchScans,
+    fetchScansSilent,
     createScan,
     refreshStatus,
     selectScan,
