@@ -138,6 +138,7 @@ func (s *discoveryService) ListResources(ctx context.Context, scanID, category, 
 			ARN:      res.ARN(),
 			Region:   res.Region(),
 			Metadata: res.Metadata(),
+			Tags:     res.Tags(),
 		})
 	}
 	return resources, nil

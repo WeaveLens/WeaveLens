@@ -41,6 +41,13 @@ func (s *DatabaseScanner) Scan(ctx context.Context) ([]*resource.Resource, error
 				continue
 			}
 
+			tags := make(map[string]string)
+			for _, tag := range db.TagList {
+				if tag.Key != nil && tag.Value != nil {
+					tags[*tag.Key] = *tag.Value
+				}
+			}
+
 			metadata := map[string]string{
 				"engine":         safePtr(db.Engine),
 				"instance_class": safePtr(db.DBInstanceClass),
@@ -56,6 +63,7 @@ func (s *DatabaseScanner) Scan(ctx context.Context) ([]*resource.Resource, error
 				resource.CategoryDatabase,
 				*db.DBInstanceIdentifier,
 				resource.WithMetadata(metadata),
+				resource.WithTags(tags),
 			)
 			if err != nil {
 				continue

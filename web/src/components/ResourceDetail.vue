@@ -65,6 +65,16 @@ const categoryColor = computed(() => {
         </div>
       </div>
 
+      <div v-if="Object.keys(selectedResource.tags).length" class="tags-section">
+        <h4>Tags</h4>
+        <div class="detail-card">
+          <div class="detail-row" v-for="(value, key) in selectedResource.tags" :key="key">
+            <span class="label">{{ key }}</span>
+            <span class="value mono">{{ value }}</span>
+          </div>
+        </div>
+      </div>
+
       <div v-if="Object.keys(selectedResource.metadata).length" class="metadata-section">
         <h4>Metadata</h4>
         <div class="detail-card">
@@ -191,6 +201,7 @@ const categoryColor = computed(() => {
 }
 
 .metadata-section h4,
+.tags-section h4,
 .relationships-section h4 {
   margin: 0 0 8px 0;
   font-size: 13px;

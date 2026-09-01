@@ -83,12 +83,9 @@ func (s *NetworkScanner) scanVPCs(ctx context.Context) ([]*resource.Resource, er
 			if vpc.VpcId == nil {
 				continue
 			}
-			name := *vpc.VpcId
-			for _, tag := range vpc.Tags {
-				if tag.Key != nil && *tag.Key == "Name" && tag.Value != nil {
-					name = *tag.Value
-					break
-				}
+			name, tags := extractTags(vpc.Tags)
+			if name == "" {
+				name = *vpc.VpcId
 			}
 
 			res, err := resource.NewResource(
@@ -99,6 +96,7 @@ func (s *NetworkScanner) scanVPCs(ctx context.Context) ([]*resource.Resource, er
 				resource.WithMetadata(map[string]string{
 					"cidr": safePtr(vpc.CidrBlock),
 				}),
+				resource.WithTags(tags),
 			)
 			if err != nil {
 				continue
@@ -129,12 +127,9 @@ func (s *NetworkScanner) scanSubnets(ctx context.Context) ([]*resource.Resource,
 			if subnet.SubnetId == nil {
 				continue
 			}
-			name := *subnet.SubnetId
-			for _, tag := range subnet.Tags {
-				if tag.Key != nil && *tag.Key == "Name" && tag.Value != nil {
-					name = *tag.Value
-					break
-				}
+			name, tags := extractTags(subnet.Tags)
+			if name == "" {
+				name = *subnet.SubnetId
 			}
 
 			metadata := map[string]string{
@@ -149,6 +144,7 @@ func (s *NetworkScanner) scanSubnets(ctx context.Context) ([]*resource.Resource,
 				resource.CategoryNetwork,
 				name,
 				resource.WithMetadata(metadata),
+				resource.WithTags(tags),
 			)
 			if err != nil {
 				continue
@@ -179,12 +175,9 @@ func (s *NetworkScanner) scanRouteTables(ctx context.Context) ([]*resource.Resou
 			if rt.RouteTableId == nil {
 				continue
 			}
-			name := *rt.RouteTableId
-			for _, tag := range rt.Tags {
-				if tag.Key != nil && *tag.Key == "Name" && tag.Value != nil {
-					name = *tag.Value
-					break
-				}
+			name, tags := extractTags(rt.Tags)
+			if name == "" {
+				name = *rt.RouteTableId
 			}
 
 			res, err := resource.NewResource(
@@ -195,6 +188,7 @@ func (s *NetworkScanner) scanRouteTables(ctx context.Context) ([]*resource.Resou
 				resource.WithMetadata(map[string]string{
 					"vpc_id": safePtr(rt.VpcId),
 				}),
+				resource.WithTags(tags),
 			)
 			if err != nil {
 				continue
@@ -225,12 +219,9 @@ func (s *NetworkScanner) scanInternetGateways(ctx context.Context) ([]*resource.
 			if igw.InternetGatewayId == nil {
 				continue
 			}
-			name := *igw.InternetGatewayId
-			for _, tag := range igw.Tags {
-				if tag.Key != nil && *tag.Key == "Name" && tag.Value != nil {
-					name = *tag.Value
-					break
-				}
+			name, tags := extractTags(igw.Tags)
+			if name == "" {
+				name = *igw.InternetGatewayId
 			}
 
 			var vpcID string
@@ -249,6 +240,7 @@ func (s *NetworkScanner) scanInternetGateways(ctx context.Context) ([]*resource.
 				resource.WithMetadata(map[string]string{
 					"vpc_id": vpcID,
 				}),
+				resource.WithTags(tags),
 			)
 			if err != nil {
 				continue
@@ -279,12 +271,9 @@ func (s *NetworkScanner) scanNATGateways(ctx context.Context) ([]*resource.Resou
 			if nat.NatGatewayId == nil {
 				continue
 			}
-			name := *nat.NatGatewayId
-			for _, tag := range nat.Tags {
-				if tag.Key != nil && *tag.Key == "Name" && tag.Value != nil {
-					name = *tag.Value
-					break
-				}
+			name, tags := extractTags(nat.Tags)
+			if name == "" {
+				name = *nat.NatGatewayId
 			}
 
 			metadata := map[string]string{
@@ -303,6 +292,7 @@ func (s *NetworkScanner) scanNATGateways(ctx context.Context) ([]*resource.Resou
 				resource.CategoryNetwork,
 				name,
 				resource.WithMetadata(metadata),
+				resource.WithTags(tags),
 			)
 			if err != nil {
 				continue
@@ -333,12 +323,9 @@ func (s *NetworkScanner) scanSecurityGroups(ctx context.Context) ([]*resource.Re
 			if sg.GroupId == nil || sg.GroupName == nil {
 				continue
 			}
-			name := *sg.GroupName
-			for _, tag := range sg.Tags {
-				if tag.Key != nil && *tag.Key == "Name" && tag.Value != nil {
-					name = *tag.Value
-					break
-				}
+			name, tags := extractTags(sg.Tags)
+			if name == "" {
+				name = *sg.GroupName
 			}
 
 			res, err := resource.NewResource(
@@ -351,6 +338,7 @@ func (s *NetworkScanner) scanSecurityGroups(ctx context.Context) ([]*resource.Re
 					"group_name": *sg.GroupName,
 					"vpc_id":     safePtr(sg.VpcId),
 				}),
+				resource.WithTags(tags),
 			)
 			if err != nil {
 				continue
@@ -359,6 +347,20 @@ func (s *NetworkScanner) scanSecurityGroups(ctx context.Context) ([]*resource.Re
 		}
 	}
 	return resources, nil
+}
+
+func extractTags(tags []ec2types.Tag) (string, map[string]string) {
+	result := make(map[string]string)
+	name := ""
+	for _, tag := range tags {
+		if tag.Key != nil && tag.Value != nil {
+			result[*tag.Key] = *tag.Value
+			if *tag.Key == "Name" {
+				name = *tag.Value
+			}
+		}
+	}
+	return name, result
 }
 
 func safePtr(s *string) string {

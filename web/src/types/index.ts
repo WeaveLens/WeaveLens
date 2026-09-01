@@ -6,6 +6,7 @@ export interface Resource {
   arn: string
   region: string
   metadata: Record<string, string>
+  tags: Record<string, string>
 }
 
 export interface Relationship {

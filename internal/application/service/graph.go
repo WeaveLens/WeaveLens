@@ -102,6 +102,7 @@ func (s *graphService) GetGraph(ctx context.Context, scanID string) ([]Resource,
 			ARN:      node.ARN(),
 			Region:   node.Region(),
 			Metadata: node.Metadata(),
+			Tags:     node.Tags(),
 		})
 	}
 
@@ -138,6 +139,7 @@ func (s *graphService) GetResource(ctx context.Context, resourceID string) (Reso
 		ARN:      node.ARN(),
 		Region:   node.Region(),
 		Metadata: node.Metadata(),
+		Tags:     node.Tags(),
 	}, nil
 }
 
@@ -162,6 +164,7 @@ func (s *graphService) GetNeighbors(ctx context.Context, resourceID string) ([]R
 			ARN:      node.ARN(),
 			Region:   node.Region(),
 			Metadata: node.Metadata(),
+			Tags:     node.Tags(),
 		})
 	}
 	return resources, nil

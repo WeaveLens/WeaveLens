@@ -25,6 +25,7 @@ type Resource struct {
 	ARN      string            `json:"arn"`
 	Region   string            `json:"region"`
 	Metadata map[string]string `json:"metadata"`
+	Tags     map[string]string `json:"tags"`
 }
 
 type Relationship struct {
