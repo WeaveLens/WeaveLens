@@ -81,7 +81,7 @@ func New(cfg *Config) *App {
 
 			factory := client.NewFactory()
 			clients := factory.BuildClients(awsCfg)
-			disc = discovery.NewServiceFromConfig(discovery.ServiceConfig{Clients: clients})
+			disc = discovery.NewServiceFromConfig(discovery.ServiceConfigInput{Clients: clients})
 		}
 	}
 

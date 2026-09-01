@@ -16,6 +16,10 @@ func NewDatabaseScanner(client RDSAPI) *DatabaseScanner {
 	return &DatabaseScanner{client: client}
 }
 
+func (s *DatabaseScanner) Name() string {
+	return "RDS"
+}
+
 func (s *DatabaseScanner) Scan(ctx context.Context) ([]*resource.Resource, error) {
 	paginator := rds.NewDescribeDBInstancesPaginator(s.client, &rds.DescribeDBInstancesInput{})
 	var resources []*resource.Resource

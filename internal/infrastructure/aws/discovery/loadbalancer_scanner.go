@@ -16,6 +16,10 @@ func NewLoadBalancerScanner(client ELBv2API) *LoadBalancerScanner {
 	return &LoadBalancerScanner{client: client}
 }
 
+func (s *LoadBalancerScanner) Name() string {
+	return "ALB"
+}
+
 func (s *LoadBalancerScanner) Scan(ctx context.Context) ([]*resource.Resource, error) {
 	paginator := elasticloadbalancingv2.NewDescribeLoadBalancersPaginator(s.client, &elasticloadbalancingv2.DescribeLoadBalancersInput{})
 	var resources []*resource.Resource

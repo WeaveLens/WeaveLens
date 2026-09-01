@@ -16,6 +16,10 @@ func NewComputeScanner(client EC2ScannerAPI) *ComputeScanner {
 	return &ComputeScanner{client: client}
 }
 
+func (s *ComputeScanner) Name() string {
+	return "EC2"
+}
+
 func (s *ComputeScanner) Scan(ctx context.Context) ([]*resource.Resource, error) {
 	paginator := ec2.NewDescribeInstancesPaginator(s.client, &ec2.DescribeInstancesInput{})
 	var resources []*resource.Resource

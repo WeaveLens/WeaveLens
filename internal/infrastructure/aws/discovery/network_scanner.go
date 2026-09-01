@@ -17,6 +17,10 @@ func NewNetworkScanner(client EC2API) *NetworkScanner {
 	return &NetworkScanner{client: client}
 }
 
+func (s *NetworkScanner) Name() string {
+	return "Network"
+}
+
 func (s *NetworkScanner) Scan(ctx context.Context) ([]*resource.Resource, error) {
 	var resources []*resource.Resource
 
