@@ -18,10 +18,22 @@ type discoveryService struct {
 	scans     map[string]*ScanRecord
 	discovery discovery.ResourceDiscovery
 	graphService GraphService
+	history *ScanHistory
 }
 
 func (s *discoveryService) SetGraphService(gs GraphService) {
 	s.graphService = gs
+}
+
+func (s *discoveryService) SetHistory(h *ScanHistory) {
+	s.history = h
+}
+
+func (s *discoveryService) GetScans() []ScanHistoryEntry {
+	if s.history == nil {
+		return []ScanHistoryEntry{}
+	}
+	return s.history.GetScans()
 }
 
 type ScanRecord struct {
@@ -56,6 +68,10 @@ func (s *discoveryService) StartScan(ctx context.Context, region string) (string
 
 	if s.graphService != nil {
 		s.graphService.SetScanRegion(scanID, region)
+	}
+
+	if s.history != nil {
+		s.history.AddScan(scanID, region)
 	}
 
 	evt := &event.ScanStartedEvent{
@@ -112,6 +128,10 @@ func (s *discoveryService) CompleteScan(ctx context.Context, scanID string, node
 
 	if !exists {
 		return nil
+	}
+
+	if s.history != nil {
+		s.history.UpdateScan(scanID, "COMPLETED", nodeCount, edgeCount)
 	}
 
 	evt := &event.ScanCompletedEvent{

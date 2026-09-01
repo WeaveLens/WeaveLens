@@ -1,9 +1,31 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useScanStore } from '../stores/scan'
+import { useGraphStore } from '../stores/graph'
 
 const scanStore = useScanStore()
+const graphStore = useGraphStore()
 const region = ref('')
+
+function formatRegion(region?: string): string {
+  return region || 'All Regions'
+}
+
+function formatTime(utcString: string): string {
+  if (!utcString) return '—'
+  const date = new Date(utcString)
+  if (Number.isNaN(date.getTime())) return '—'
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'short',
+    timeStyle: 'medium',
+  }).format(date)
+}
+
+function loadHistoricalScan(scanId: string) {
+  graphStore.clearGraph()
+  graphStore.loadGraph(scanId)
+  scanStore.selectScan(scanStore.scans.find(s => s.id === scanId) || null)
+}
 
 const regions = [
   { value: '', label: 'All Regions' },
@@ -117,7 +139,7 @@ const hasScans = computed(() => scanStore.scans.length > 0)
         </div>
         <div class="scan-row">
           <span class="label">Region</span>
-          <span class="value">{{ scanStore.currentScan.region }}</span>
+          <span class="value">{{ formatRegion(scanStore.currentScan.region) }}</span>
         </div>
       </div>
     </div>
@@ -125,11 +147,23 @@ const hasScans = computed(() => scanStore.scans.length > 0)
     <div v-if="hasScans" class="scan-history">
       <h4>Scan History</h4>
       <ul>
-        <li v-for="scan in scanStore.scans" :key="scan.id" class="history-item">
-          <span class="history-status" :style="{ color: statusColor(scan.status) }">
-            {{ scan.status }}
-          </span>
-          <span class="history-region">{{ scan.region }}</span>
+        <li
+          v-for="scan in scanStore.scans"
+          :key="scan.id"
+          class="history-item"
+          :class="{ active: scanStore.currentScan?.id === scan.id }"
+          @click="loadHistoricalScan(scan.id)"
+        >
+          <div class="history-main">
+            <span class="history-status" :style="{ color: statusColor(scan.status) }">
+              {{ scan.status }}
+            </span>
+            <span class="history-region">{{ formatRegion(scan.region) }}</span>
+          </div>
+          <div class="history-meta">
+            <span class="history-id">{{ scan.id }}</span>
+            <span class="history-time">{{ formatTime(scan.createdAt) }}</span>
+          </div>
         </li>
       </ul>
     </div>
@@ -313,15 +347,32 @@ const hasScans = computed(() => scanStore.scans.length > 0)
 
 .history-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
+  flex-direction: column;
+  padding: 10px 8px;
   border-bottom: 1px solid #eee;
   font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.history-item:hover {
+  background: #f5f5f5;
+}
+
+.history-item.active {
+  background: #e3f2fd;
 }
 
 .history-item:last-child {
   border-bottom: none;
+}
+
+.history-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
 }
 
 .history-status {
@@ -330,6 +381,32 @@ const hasScans = computed(() => scanStore.scans.length > 0)
 
 .history-region {
   color: #666;
+}
+
+.history-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: #999;
+}
+
+.history-time {
+  white-space: nowrap;
+  color: #666;
+}
+
+.history-id {
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 60%;
+}
+
+.history-time {
+  white-space: nowrap;
 }
 
 .empty-state {

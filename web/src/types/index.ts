@@ -21,6 +21,8 @@ export interface Scan {
   id: string
   status: string
   region: string
+  nodeCount: number
+  edgeCount: number
   createdAt: string
   updatedAt: string
 }

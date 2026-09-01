@@ -9,6 +9,8 @@ type DiscoveryService interface {
 	ListResources(ctx context.Context, scanID, category, resourceType string) ([]Resource, error)
 	CompleteScan(ctx context.Context, scanID string, nodeCount, edgeCount int) error
 	SetGraphService(gs GraphService)
+	SetHistory(h *ScanHistory)
+	GetScans() []ScanHistoryEntry
 }
 
 type GraphService interface {
@@ -17,6 +19,7 @@ type GraphService interface {
 	GetNeighbors(ctx context.Context, resourceID string) ([]Resource, error)
 	GetRelationships(ctx context.Context, resourceID string) ([]Relationship, error)
 	SetScanRegion(scanID, region string)
+	SetHistory(h *ScanHistory)
 }
 
 type Resource struct {

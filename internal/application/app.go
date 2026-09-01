@@ -131,6 +131,11 @@ func (a *App) Run(ctx context.Context) error {
 	})
 
 	discoveryService.SetGraphService(graphService)
+
+	scanHistory := service.NewScanHistory()
+	discoveryService.SetHistory(scanHistory)
+	graphService.SetHistory(scanHistory)
+
 	exportService := service.NewExportService(graphService)
 
 	mux := transport.NewRouter(discoveryService, graphService, a, exportService, a.logger)

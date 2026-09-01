@@ -39,6 +39,11 @@ export async function getRelationships(resourceId: string): Promise<Relationship
   return handleResponse<Relationship[]>(response)
 }
 
+export async function getScans(): Promise<Scan[]> {
+  const response = await fetch(`${API_BASE}/scans`)
+  return handleResponse<Scan[]>(response)
+}
+
 export async function getConnectionStatus(): Promise<ConnectionStatus> {
   const response = await fetch(`${API_BASE}/connection`)
   return handleResponse<ConnectionStatus>(response)

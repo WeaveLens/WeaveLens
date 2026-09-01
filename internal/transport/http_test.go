@@ -27,6 +27,14 @@ func (f *fakeDiscoveryService) GetScanStatus(ctx context.Context, scanID string)
 	return "RUNNING", 0, nil
 }
 
+func (f *fakeDiscoveryService) GetScans() []service.ScanHistoryEntry {
+	return []service.ScanHistoryEntry{{
+		ID:     "scan-123",
+		Status: "RUNNING",
+		Region: "us-east-1",
+	}}
+}
+
 func (f *fakeDiscoveryService) CancelScan(ctx context.Context, scanID string) error {
 	return nil
 }
@@ -157,6 +165,17 @@ func TestGetScanStatus(t *testing.T) {
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("GET /api/scans/scan-123/status status = %v, want %v", resp.StatusCode, http.StatusOK)
+	}
+
+	var scan transport.ScanResponse
+	if err := json.NewDecoder(resp.Body).Decode(&scan); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+	if scan.Region != "us-east-1" {
+		t.Errorf("GET /api/scans/scan-123/status region = %v, want us-east-1", scan.Region)
+	}
+	if scan.CreatedAt == "" || scan.UpdatedAt == "" {
+		t.Errorf("GET /api/scans/scan-123/status timestamps should not be empty: %+v", scan)
 	}
 }
 

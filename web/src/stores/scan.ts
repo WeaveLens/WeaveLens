@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Scan, ScanConfig } from '../types'
-import { startScan, getScanStatus } from '../api/client'
+import { startScan, getScanStatus, getScans } from '../api/client'
 
 export const useScanStore = defineStore('scan', () => {
   const scans = ref<Scan[]>([])
@@ -11,12 +11,21 @@ export const useScanStore = defineStore('scan', () => {
 
   const activeScan = computed(() => scans.value.find(s => s.status === 'RUNNING') ?? null)
 
+  async function fetchScans() {
+    try {
+      const data = await getScans()
+      scans.value = data
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : 'Failed to fetch scans'
+    }
+  }
+
   async function createScan(config: ScanConfig) {
     loading.value = true
     error.value = null
     try {
       const scan = await startScan(config)
-      scans.value.push(scan)
+      await fetchScans()
       currentScan.value = scan
       return scan
     } catch (e) {

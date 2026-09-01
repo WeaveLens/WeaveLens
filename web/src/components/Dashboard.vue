@@ -15,9 +15,11 @@ const graphStore = useGraphStore()
 const uiStore = useUiStore()
 
 onMounted(async () => {
+  await scanStore.fetchScans()
   const saved = localStorage.getItem('weavelens_scan_id')
   if (saved) {
-    scanStore.selectScan({ id: saved, status: 'UNKNOWN', region: '', updatedAt: '' } as any)
+    const savedScan = scanStore.scans.find(scan => scan.id === saved)
+    scanStore.selectScan(savedScan ?? ({ id: saved, status: 'UNKNOWN', region: '', createdAt: '', updatedAt: '' } as any))
     await graphStore.loadGraph(saved)
     await scanStore.refreshStatus(saved)
   }

@@ -63,7 +63,7 @@ func writeError(w http.ResponseWriter, status int, message string) {
 }
 
 func parseTime(t time.Time) string {
-	return t.Format(time.RFC3339)
+	return t.UTC().Format(time.RFC3339)
 }
 
 func NewRouter(discovery service.DiscoveryService, graph service.GraphService, connection ConnectionStatusGetter, export service.ExportService, logger *slog.Logger) *http.ServeMux {
@@ -108,8 +108,8 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 			ID:        scanID,
 			Status:    status,
 			Region:    req.Region,
-			CreatedAt: parseTime(time.Now()),
-			UpdatedAt: parseTime(time.Now()),
+			CreatedAt: parseTime(time.Now().UTC()),
+			UpdatedAt: parseTime(time.Now().UTC()),
 		})
 	})
 
@@ -121,10 +121,28 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 			return
 		}
 
+		region := ""
+		createdAt := time.Now().UTC()
+		updatedAt := time.Now().UTC()
+		for _, scan := range discovery.GetScans() {
+			if scan.ID == scanID {
+				region = scan.Region
+				if !scan.CreatedAt.IsZero() {
+					createdAt = scan.CreatedAt.UTC()
+				}
+				if !scan.UpdatedAt.IsZero() {
+					updatedAt = scan.UpdatedAt.UTC()
+				}
+				break
+			}
+		}
+
 		writeJSON(w, http.StatusOK, ScanResponse{
 			ID:        scanID,
 			Status:    status,
-			UpdatedAt: parseTime(time.Now()),
+			Region:    region,
+			CreatedAt: parseTime(createdAt),
+			UpdatedAt: parseTime(updatedAt),
 		})
 	})
 
@@ -165,7 +183,8 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 	})
 
 	mux.HandleFunc("GET /api/scans", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, []ScanResponse{})
+		scans := discovery.GetScans()
+		writeJSON(w, http.StatusOK, scans)
 	})
 
 	mux.HandleFunc("GET /api/scans/{scanId}/export", func(w http.ResponseWriter, r *http.Request) {

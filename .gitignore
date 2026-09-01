@@ -22,6 +22,9 @@ vendor/
 # Local cache directories
 .cache/
 
+# Scan history data
+.scans.json
+
 # IDE files
 .idea/
 .vscode/
