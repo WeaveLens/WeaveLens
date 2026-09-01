@@ -191,6 +191,7 @@ defineExpose({ fitGraph })
   padding: 8px 16px;
   background: white;
   border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
 }
 
 .control-btn {
@@ -213,7 +214,8 @@ defineExpose({ fitGraph })
 
 .topology-view {
   flex: 1;
-  min-height: 400px;
+  min-height: 0;
+  width: 100%;
   background: #fafafa;
 }
 

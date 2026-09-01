@@ -23,7 +23,7 @@ const categoryColor = computed(() => {
 </script>
 
 <template>
-  <aside class="resource-detail" :class="{ hasSelection: selectedResource }">
+  <div class="resource-detail">
     <div v-if="selectedResource" class="detail-content">
       <div class="detail-header">
         <h3>Resource Detail</h3>
@@ -94,18 +94,21 @@ const categoryColor = computed(() => {
       <h3>No Resource Selected</h3>
       <p>Click on a resource in the graph to view its details.</p>
     </div>
-  </aside>
+  </div>
 </template>
 
 <style scoped>
 .resource-detail {
-  background: #fafafa;
+  display: flex;
+  flex-direction: column;
   height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .detail-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px;
 }
 
@@ -233,11 +236,11 @@ const categoryColor = computed(() => {
 }
 
 .empty-state {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 200px;
   padding: 32px;
   text-align: center;
   color: #666;

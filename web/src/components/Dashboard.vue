@@ -48,8 +48,8 @@ watch(() => scanStore.currentScan?.id, (scanId) => {
       </nav>
     </header>
 
-    <div class="app-body" :class="{ 'no-left': !uiStore.sidebarOpen }">
-      <aside v-if="uiStore.sidebarOpen" class="left-panel">
+    <div class="app-body">
+      <aside v-if="uiStore.sidebarOpen" class="panel left-panel">
         <CloudConnection />
         <ScanPanel />
       </aside>
@@ -60,7 +60,7 @@ watch(() => scanStore.currentScan?.id, (scanId) => {
         <Legend v-if="uiStore.legendOpen" />
       </main>
 
-      <aside v-if="uiStore.sidebarOpen" class="right-panel">
+      <aside v-if="uiStore.sidebarOpen" class="panel right-panel">
         <ResourceDetail />
       </aside>
     </div>
@@ -73,7 +73,6 @@ watch(() => scanStore.currentScan?.id, (scanId) => {
   flex-direction: column;
   height: 100vh;
   width: 100%;
-  overflow: hidden;
 }
 
 .app-header {
@@ -147,68 +146,57 @@ watch(() => scanStore.currentScan?.id, (scanId) => {
   display: flex;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+}
+
+.panel {
+  width: 300px;
+  flex-shrink: 0;
+  background: #fafafa;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .left-panel {
-  width: 320px;
-  min-width: 280px;
-  max-width: 400px;
-  background: #fafafa;
   border-right: 1px solid #e0e0e0;
-  overflow-y: auto;
-  flex-shrink: 0;
+}
+
+.right-panel {
+  border-left: 1px solid #e0e0e0;
 }
 
 .main-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   min-width: 0;
 }
 
-.right-panel {
-  width: 320px;
-  min-width: 280px;
-  max-width: 400px;
-  background: #fafafa;
-  border-left: 1px solid #e0e0e0;
-  overflow-y: auto;
-  flex-shrink: 0;
-}
-
-/* Responsive adjustments */
-@media (max-width: 1600px) {
-  .left-panel,
-  .right-panel {
-    width: 280px;
-    min-width: 260px;
-  }
-}
-
-@media (max-width: 1280px) {
-  .left-panel,
-  .right-panel {
+/* Responsive: Smaller screens */
+@media (max-width: 1200px) {
+  .panel {
     width: 260px;
-    min-width: 240px;
   }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 900px) {
+  .panel {
+    width: 240px;
+  }
+}
+
+/* Very small screens or high zoom */
+@media (max-width: 700px) {
   .app-body {
     flex-direction: column;
   }
-  .left-panel {
+  .panel {
     width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    max-height: 40vh;
+    max-height: 35vh;
+    flex-shrink: 0;
+  }
+  .left-panel {
     border-right: none;
     border-bottom: 1px solid #e0e0e0;
-  }
-  .right-panel {
-    display: none;
   }
 }
 </style>
