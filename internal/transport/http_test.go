@@ -128,6 +128,22 @@ func TestStartScan(t *testing.T) {
 	}
 }
 
+func TestStartScanAllRegions(t *testing.T) {
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, newTestLogger())
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	resp, err := http.Post(server.URL+"/api/scans", "application/json", strings.NewReader(`{"region":""}`))
+	if err != nil {
+		t.Fatalf("POST /api/scans all-regions error = %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusAccepted {
+		t.Errorf("POST /api/scans all-regions status = %v, want %v", resp.StatusCode, http.StatusAccepted)
+	}
+}
+
 func TestGetScanStatus(t *testing.T) {
 	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, newTestLogger())
 	server := httptest.NewServer(mux)
@@ -280,7 +296,7 @@ func TestMissingRegion(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusBadRequest {
-		t.Errorf("POST /api/scans status = %v, want %v", resp.StatusCode, http.StatusBadRequest)
+	if resp.StatusCode != http.StatusAccepted {
+		t.Errorf("POST /api/scans status = %v, want %v", resp.StatusCode, http.StatusAccepted)
 	}
 }

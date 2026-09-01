@@ -37,10 +37,10 @@ type fakeGraphService struct {
 
 func (f *fakeGraphService) GetGraph(ctx context.Context, scanID string) ([]service.Resource, []service.Relationship, error) {
 	return []service.Resource{
-		{ID: "res-1", Name: "test", Type: "EC2", Category: "compute"},
-	}, []service.Relationship{
-		{ID: "rel-1", SourceID: "vpc-1", TargetID: "subnet-1", Type: "contains"},
-	}, nil
+			{ID: "res-1", Name: "test", Type: "EC2", Category: "compute"},
+		}, []service.Relationship{
+			{ID: "rel-1", SourceID: "vpc-1", TargetID: "subnet-1", Type: "contains"},
+		}, nil
 }
 
 func (f *fakeGraphService) GetResource(ctx context.Context, resourceID string) (service.Resource, error) {
@@ -80,9 +80,12 @@ func TestDiscoveryServerValidation(t *testing.T) {
 	fake := &fakeDiscoveryService{}
 	server := grpc.NewDiscoveryServer(fake)
 
-	_, err := server.StartScan(context.Background(), &grpc.StartScanRequest{Region: "   "})
-	if err == nil {
-		t.Error("StartScan() expected validation error for empty region")
+	resp, err := server.StartScan(context.Background(), &grpc.StartScanRequest{Region: "   "})
+	if err != nil {
+		t.Fatalf("StartScan() with empty region should be allowed: %v", err)
+	}
+	if resp.ScanID != "scan-123" {
+		t.Errorf("StartScan() ScanID = %v, want scan-123", resp.ScanID)
 	}
 }
 
@@ -194,9 +197,12 @@ func TestGRPCClientValidation(t *testing.T) {
 	fake := &fakeDiscoveryService{}
 	client := grpc.NewDiscoveryClient(fake)
 
-	_, err := client.StartScan(context.Background(), &grpc.StartScanRequest{Region: "   "})
-	if err == nil {
-		t.Error("StartScan() expected validation error for empty region")
+	resp, err := client.StartScan(context.Background(), &grpc.StartScanRequest{Region: "   "})
+	if err != nil {
+		t.Fatalf("StartScan() with empty region should be allowed: %v", err)
+	}
+	if resp.ScanID != "scan-123" {
+		t.Errorf("StartScan() ScanID = %v, want scan-123", resp.ScanID)
 	}
 }
 

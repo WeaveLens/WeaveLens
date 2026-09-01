@@ -76,10 +76,10 @@ func (s *DiscoveryServer) GetScanStatus(ctx context.Context, req *GetScanStatusR
 	s.mu.Unlock()
 
 	return &GetScanStatusResponse{
-		ScanID:       req.ScanID,
-		Status:       status,
+		ScanID:        req.ScanID,
+		Status:        status,
 		ResourceCount: int32(count),
-		Message:      "scan status retrieved",
+		Message:       "scan status retrieved",
 	}, nil
 }
 
@@ -220,9 +220,8 @@ func (s *GraphServer) GetRelationships(ctx context.Context, req *GetRelationship
 func validateRequest(req interface{}) error {
 	switch r := req.(type) {
 	case *StartScanRequest:
-		if strings.TrimSpace(r.Region) == "" {
-			return fmt.Errorf("region must not be empty")
-		}
+		// Empty region means "all regions" and is valid for cross-region scans.
+		return nil
 	case *GetScanStatusRequest:
 		if strings.TrimSpace(r.ScanID) == "" {
 			return fmt.Errorf("scan_id must not be empty")

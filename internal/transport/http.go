@@ -19,8 +19,8 @@ type ScanResponse struct {
 }
 
 type GraphResponse struct {
-	Nodes []service.Resource      `json:"nodes"`
-	Edges []service.Relationship  `json:"edges"`
+	Nodes []service.Resource     `json:"nodes"`
+	Edges []service.Relationship `json:"edges"`
 }
 
 type ResourceResponse struct {
@@ -89,11 +89,6 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 			writeError(w, http.StatusBadRequest, "Invalid request body")
 			return
 		}
-		if req.Region == "" {
-			writeError(w, http.StatusBadRequest, "region is required")
-			return
-		}
-
 		scanID, err := discovery.StartScan(r.Context(), req.Region)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "Failed to start scan")

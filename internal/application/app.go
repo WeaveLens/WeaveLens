@@ -19,13 +19,13 @@ import (
 )
 
 type App struct {
-	config            *Config
-	logger            *slog.Logger
-	eventBus          *nats.EventBus
-	discovery         discovery.ResourceDiscovery
-	identity          *credential.Identity
-	region            string
-	credentialSource  string
+	config           *Config
+	logger           *slog.Logger
+	eventBus         *nats.EventBus
+	discovery        discovery.ResourceDiscovery
+	identity         *credential.Identity
+	region           string
+	credentialSource string
 }
 
 func parseLogLevel(level string) slog.Level {
@@ -71,9 +71,9 @@ func New(cfg *Config) *App {
 	credentialSource := "default"
 	if cfg.AWSRoleARN != "" {
 		provider = credential.NewAssumeRoleProvider(provider, credential.AssumeRoleConfig{
-			RoleARN:      cfg.AWSRoleARN,
-			SessionName:  cfg.AWSRoleSessionName,
-			ExternalID:   cfg.AWSExternalID,
+			RoleARN:     cfg.AWSRoleARN,
+			SessionName: cfg.AWSRoleSessionName,
+			ExternalID:  cfg.AWSExternalID,
 		})
 		credentialSource = "assume_role"
 	}
@@ -101,7 +101,11 @@ func New(cfg *Config) *App {
 
 			factory := client.NewFactory()
 			clients := factory.BuildClients(awsCfg)
-			disc = discovery.NewServiceFromConfig(discovery.ServiceConfigInput{Clients: clients, Region: cfg.AWSRegion})
+			disc = discovery.NewServiceFromConfig(discovery.ServiceConfigInput{
+				Clients:   clients,
+				Region:    cfg.AWSRegion,
+				AWSConfig: awsCfg,
+			})
 		}
 	}
 
