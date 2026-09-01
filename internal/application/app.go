@@ -10,8 +10,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/elip/WeaveLens/internal/application/service"
-	"github.com/elip/WeaveLens/internal/infrastructure/aws/client"
+	"github.com/elip/WeaveLens/internal/infrastructure/aws"
+	awsclient "github.com/elip/WeaveLens/internal/infrastructure/aws/client"
 	"github.com/elip/WeaveLens/internal/infrastructure/aws/credential"
 	"github.com/elip/WeaveLens/internal/infrastructure/aws/discovery"
 	"github.com/elip/WeaveLens/internal/infrastructure/nats"
@@ -26,6 +28,7 @@ type App struct {
 	identity         *credential.Identity
 	region           string
 	credentialSource string
+	ec2Client        *ec2.Client
 }
 
 func parseLogLevel(level string) slog.Level {
@@ -80,6 +83,7 @@ func New(cfg *Config) *App {
 
 	var disc discovery.ResourceDiscovery
 	var identity *credential.Identity
+	var ec2Client *ec2.Client
 	if cfg.AWSRegion != "" {
 		awsCfg, err := provider.Load(context.Background(), cfg.AWSRegion)
 		if err != nil {
@@ -99,13 +103,14 @@ func New(cfg *Config) *App {
 				)
 			}
 
-			factory := client.NewFactory()
+			factory := awsclient.NewFactory()
 			clients := factory.BuildClients(awsCfg)
 			disc = discovery.NewServiceFromConfig(discovery.ServiceConfigInput{
 				Clients:   clients,
 				Region:    cfg.AWSRegion,
 				AWSConfig: awsCfg,
 			})
+			ec2Client = ec2.NewFromConfig(awsCfg)
 		}
 	}
 
@@ -117,6 +122,7 @@ func New(cfg *Config) *App {
 		identity:         identity,
 		region:           cfg.AWSRegion,
 		credentialSource: credentialSource,
+		ec2Client:        ec2Client,
 	}
 }
 
@@ -138,7 +144,13 @@ func (a *App) Run(ctx context.Context) error {
 
 	exportService := service.NewExportService(graphService)
 
-	mux := transport.NewRouter(discoveryService, graphService, a, exportService, a.logger)
+	var regionService *service.RegionService
+	if a.ec2Client != nil {
+		fetcher := aws.NewRegionFetcher(a.ec2Client)
+		regionService = service.NewRegionService(fetcher)
+	}
+
+	mux := transport.NewRouter(discoveryService, graphService, a, exportService, regionService, a.logger)
 	server, err := transport.StartServer(":"+a.config.ServerPort, mux, a.config.APIKey, a.logger)
 	if err != nil {
 		return fmt.Errorf("failed to start server: %w", err)

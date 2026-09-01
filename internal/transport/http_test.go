@@ -89,7 +89,7 @@ func newTestLogger() *slog.Logger {
 }
 
 func TestHealthEndpoint(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, newTestLogger())
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, nil, newTestLogger())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -105,7 +105,7 @@ func TestHealthEndpoint(t *testing.T) {
 }
 
 func TestReadyEndpoint(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, newTestLogger())
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, nil, newTestLogger())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -121,7 +121,7 @@ func TestReadyEndpoint(t *testing.T) {
 }
 
 func TestStartScan(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, newTestLogger())
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, nil, newTestLogger())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -137,7 +137,7 @@ func TestStartScan(t *testing.T) {
 }
 
 func TestStartScanAllRegions(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, newTestLogger())
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, nil, newTestLogger())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -153,7 +153,7 @@ func TestStartScanAllRegions(t *testing.T) {
 }
 
 func TestGetScanStatus(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, newTestLogger())
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, nil, newTestLogger())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -180,7 +180,7 @@ func TestGetScanStatus(t *testing.T) {
 }
 
 func TestGetGraph(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, newTestLogger())
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, nil, newTestLogger())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -196,7 +196,7 @@ func TestGetGraph(t *testing.T) {
 }
 
 func TestGetResource(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, newTestLogger())
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, nil, newTestLogger())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -212,7 +212,7 @@ func TestGetResource(t *testing.T) {
 }
 
 func TestGetRelationships(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, newTestLogger())
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, nil, newTestLogger())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -228,7 +228,7 @@ func TestGetRelationships(t *testing.T) {
 }
 
 func TestScanStatusTimestamp(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, newTestLogger())
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, nil, newTestLogger())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -253,7 +253,7 @@ func TestScanStatusTimestamp(t *testing.T) {
 }
 
 func TestExportGraph(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, newTestLogger())
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, nil, newTestLogger())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -273,7 +273,7 @@ func TestExportGraph(t *testing.T) {
 }
 
 func TestExportGraph_DefaultFormat(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, newTestLogger())
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, nil, newTestLogger())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -289,7 +289,7 @@ func TestExportGraph_DefaultFormat(t *testing.T) {
 }
 
 func TestInvalidRequest(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, newTestLogger())
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, nil, newTestLogger())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -305,7 +305,7 @@ func TestInvalidRequest(t *testing.T) {
 }
 
 func TestMissingRegion(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, newTestLogger())
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, nil, newTestLogger())
 	server := httptest.NewServer(mux)
 	defer server.Close()
 

@@ -1,14 +1,31 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useScanStore } from '../stores/scan'
 import { useGraphStore } from '../stores/graph'
+import { getRegions, type RegionInfo } from '../api/client'
 
 const scanStore = useScanStore()
 const graphStore = useGraphStore()
 const region = ref('')
+const regions = ref<RegionInfo[]>([{ value: '', label: 'All Regions' }])
+
+onMounted(async () => {
+  try {
+    const fetched = await getRegions()
+    regions.value = [{ value: '', label: 'All Regions' }, ...fetched]
+  } catch {
+    // Use default regions if API fails
+  }
+})
 
 function formatRegion(region?: string): string {
   return region || 'All Regions'
+}
+
+function getRegionLabel(regionCode?: string): string {
+  if (!regionCode) return 'All Regions'
+  const found = regions.value.find(r => r.value === regionCode)
+  return found ? found.label : regionCode
 }
 
 function formatTime(utcString: string): string {
@@ -26,52 +43,6 @@ function loadHistoricalScan(scanId: string) {
   graphStore.loadGraph(scanId)
   scanStore.selectScan(scanStore.scans.find(s => s.id === scanId) || null)
 }
-
-const regions = [
-  { value: '', label: 'All Regions' },
-  // US Regions
-  { value: 'us-east-1', label: 'US East (N. Virginia)' },
-  { value: 'us-east-2', label: 'US East (Ohio)' },
-  { value: 'us-west-1', label: 'US West (N. California)' },
-  { value: 'us-west-2', label: 'US West (Oregon)' },
-  // GovCloud
-  { value: 'us-gov-east-1', label: 'AWS GovCloud (US-East)' },
-  { value: 'us-gov-west-1', label: 'AWS GovCloud (US-West)' },
-  // Canada
-  { value: 'ca-central-1', label: 'Canada (Central)' },
-  { value: 'ca-west-1', label: 'Canada West (Calgary)' },
-  // South America
-  { value: 'sa-east-1', label: 'South America (São Paulo)' },
-  // Europe
-  { value: 'eu-west-1', label: 'Europe (Ireland)' },
-  { value: 'eu-west-2', label: 'Europe (London)' },
-  { value: 'eu-west-3', label: 'Europe (Paris)' },
-  { value: 'eu-central-1', label: 'Europe (Frankfurt)' },
-  { value: 'eu-central-2', label: 'Europe (Zurich)' },
-  { value: 'eu-south-1', label: 'Europe (Milan)' },
-  { value: 'eu-south-2', label: 'Europe (Spain)' },
-  { value: 'eu-north-1', label: 'Europe (Stockholm)' },
-  // Middle East
-  { value: 'me-south-1', label: 'Middle East (Bahrain)' },
-  { value: 'me-central-1', label: 'Middle East (UAE)' },
-  { value: 'il-central-1', label: 'Israel (Tel Aviv)' },
-  // Africa
-  { value: 'af-south-1', label: 'Africa (Cape Town)' },
-  // Asia Pacific
-  { value: 'ap-southeast-1', label: 'Asia Pacific (Singapore)' },
-  { value: 'ap-southeast-2', label: 'Asia Pacific (Sydney)' },
-  { value: 'ap-southeast-3', label: 'Asia Pacific (Jakarta)' },
-  { value: 'ap-southeast-4', label: 'Asia Pacific (Melbourne)' },
-  { value: 'ap-southeast-5', label: 'Asia Pacific (Malaysia)' },
-  { value: 'ap-south-1', label: 'Asia Pacific (Mumbai)' },
-  { value: 'ap-south-2', label: 'Asia Pacific (Hyderabad)' },
-  { value: 'ap-northeast-1', label: 'Asia Pacific (Tokyo)' },
-  { value: 'ap-northeast-2', label: 'Asia Pacific (Seoul)' },
-  { value: 'ap-northeast-3', label: 'Asia Pacific (Osaka)' },
-  { value: 'ap-east-1', label: 'Asia Pacific (Hong Kong)' },
-  { value: 'cn-north-1', label: 'China (Beijing)' },
-  { value: 'cn-northwest-1', label: 'China (Ningxia)' },
-]
 
 async function handleStartScan() {
   await scanStore.createScan({ region: region.value.trim() })
@@ -139,7 +110,11 @@ const hasScans = computed(() => scanStore.scans.length > 0)
         </div>
         <div class="scan-row">
           <span class="label">Region</span>
-          <span class="value">{{ formatRegion(scanStore.currentScan.region) }}</span>
+          <span class="value">{{ getRegionLabel(scanStore.currentScan.region) }}</span>
+        </div>
+        <div class="scan-row">
+          <span class="label">Service(s)</span>
+          <span class="value">{{ scanStore.currentScan.nodeCount || 0 }}</span>
         </div>
       </div>
     </div>
@@ -158,11 +133,12 @@ const hasScans = computed(() => scanStore.scans.length > 0)
             <span class="history-status" :style="{ color: statusColor(scan.status) }">
               {{ scan.status }}
             </span>
-            <span class="history-region">{{ formatRegion(scan.region) }}</span>
+            <span class="history-region">{{ getRegionLabel(scan.region) }}</span>
           </div>
           <div class="history-meta">
             <span class="history-id">{{ scan.id }}</span>
-            <span class="history-time">{{ formatTime(scan.createdAt) }}</span>
+            <span class="history-nodes">{{ scan.nodeCount || 0 }} {{ (scan.nodeCount || 0) === 1 ? 'service' : 'services' }}</span>
+            <span class="history-time" v-show="false">{{ formatTime(scan.createdAt) }}</span>
           </div>
         </li>
       </ul>
@@ -407,6 +383,10 @@ const hasScans = computed(() => scanStore.scans.length > 0)
 
 .history-time {
   white-space: nowrap;
+}
+
+.history-nodes {
+  font-weight: 500;
 }
 
 .empty-state {

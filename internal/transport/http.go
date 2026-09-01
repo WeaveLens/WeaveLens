@@ -14,6 +14,8 @@ type ScanResponse struct {
 	ID        string `json:"id"`
 	Status    string `json:"status"`
 	Region    string `json:"region"`
+	NodeCount int    `json:"nodeCount"`
+	EdgeCount int    `json:"edgeCount"`
 	CreatedAt string `json:"createdAt"`
 	UpdatedAt string `json:"updatedAt"`
 }
@@ -66,7 +68,7 @@ func parseTime(t time.Time) string {
 	return t.UTC().Format(time.RFC3339)
 }
 
-func NewRouter(discovery service.DiscoveryService, graph service.GraphService, connection ConnectionStatusGetter, export service.ExportService, logger *slog.Logger) *http.ServeMux {
+func NewRouter(discovery service.DiscoveryService, graph service.GraphService, connection ConnectionStatusGetter, export service.ExportService, regions *service.RegionService, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -79,6 +81,14 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 
 	mux.HandleFunc("GET /api/connection", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, connection.GetConnectionStatus())
+	})
+
+	mux.HandleFunc("GET /api/regions", func(w http.ResponseWriter, r *http.Request) {
+		if regions == nil {
+			writeJSON(w, http.StatusOK, []service.RegionInfo{})
+			return
+		}
+		writeJSON(w, http.StatusOK, regions.GetRegions(r.Context()))
 	})
 
 	mux.HandleFunc("POST /api/scans", func(w http.ResponseWriter, r *http.Request) {
@@ -122,11 +132,15 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 		}
 
 		region := ""
+		nodeCount := 0
+		edgeCount := 0
 		createdAt := time.Now().UTC()
 		updatedAt := time.Now().UTC()
 		for _, scan := range discovery.GetScans() {
 			if scan.ID == scanID {
 				region = scan.Region
+				nodeCount = scan.NodeCount
+				edgeCount = scan.EdgeCount
 				if !scan.CreatedAt.IsZero() {
 					createdAt = scan.CreatedAt.UTC()
 				}
@@ -141,6 +155,8 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 			ID:        scanID,
 			Status:    status,
 			Region:    region,
+			NodeCount: nodeCount,
+			EdgeCount: edgeCount,
 			CreatedAt: parseTime(createdAt),
 			UpdatedAt: parseTime(updatedAt),
 		})

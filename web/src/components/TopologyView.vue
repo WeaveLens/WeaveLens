@@ -162,7 +162,7 @@ defineExpose({ fitGraph })
         Fit
       </button>
       <span class="node-count" v-if="graphStore.nodes.length">
-        {{ graphStore.nodes.length }} nodes
+        {{ graphStore.nodes.length }} {{ (graphStore.nodes.length === 1 ? 'service' : 'services') }}
       </span>
     </div>
     <div ref="containerRef" class="topology-view" />

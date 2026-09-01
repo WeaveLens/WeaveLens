@@ -44,6 +44,16 @@ export async function getScans(): Promise<Scan[]> {
   return handleResponse<Scan[]>(response)
 }
 
+export interface RegionInfo {
+  value: string
+  label: string
+}
+
+export async function getRegions(): Promise<RegionInfo[]> {
+  const response = await fetch(`${API_BASE}/regions`)
+  return handleResponse<RegionInfo[]>(response)
+}
+
 export async function getConnectionStatus(): Promise<ConnectionStatus> {
   const response = await fetch(`${API_BASE}/connection`)
   return handleResponse<ConnectionStatus>(response)
