@@ -16,11 +16,9 @@ onMounted(async () => {
   } catch {
     // Use default regions if API fails
   }
-})
 
-function formatRegion(region?: string): string {
-  return region || 'All Regions'
-}
+  await scanStore.fetchScans()
+})
 
 function getRegionLabel(regionCode?: string): string {
   if (!regionCode) return 'All Regions'
@@ -64,6 +62,7 @@ const statusColor = (status: string) => {
 }
 
 const hasScans = computed(() => scanStore.scans.length > 0)
+const isLoading = computed(() => scanStore.loading)
 </script>
 
 <template>
@@ -119,7 +118,12 @@ const hasScans = computed(() => scanStore.scans.length > 0)
       </div>
     </div>
 
-    <div v-if="hasScans" class="scan-history">
+    <div v-if="isLoading" class="loading-state">
+      <span class="spinner"></span>
+      Loading history...
+    </div>
+
+    <div v-else-if="hasScans" class="scan-history">
       <h4>Scan History</h4>
       <ul>
         <li
@@ -137,14 +141,17 @@ const hasScans = computed(() => scanStore.scans.length > 0)
           </div>
           <div class="history-meta">
             <span class="history-id">{{ scan.id }}</span>
-            <span class="history-nodes">{{ scan.nodeCount || 0 }} {{ (scan.nodeCount || 0) === 1 ? 'service' : 'services' }}</span>
+            <span class="history-nodes">{{ scan.nodeCount || 0 }} {{ (scan.nodeCount || 0) <= 1 ? 'service' : 'services' }}</span>
             <span class="history-time" v-show="false">{{ formatTime(scan.createdAt) }}</span>
           </div>
         </li>
       </ul>
     </div>
 
-    <div v-else-if="!scanStore.currentScan" class="empty-state">
+    <div
+      v-else-if="!isLoading && !hasScans"
+      class="empty-state"
+    >
       <div class="empty-icon">🔍</div>
       <p>No scans yet. Start your first scan above.</p>
     </div>
@@ -394,6 +401,17 @@ const hasScans = computed(() => scanStore.scans.length > 0)
   text-align: center;
   padding: 20px;
   color: #666;
+}
+
+.loading-state {
+  margin-top: 20px;
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .empty-icon {

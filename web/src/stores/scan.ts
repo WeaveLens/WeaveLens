@@ -12,11 +12,14 @@ export const useScanStore = defineStore('scan', () => {
   const activeScan = computed(() => scans.value.find(s => s.status === 'RUNNING') ?? null)
 
   async function fetchScans() {
+    loading.value = true
     try {
       const data = await getScans()
       scans.value = data
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to fetch scans'
+    } finally {
+      loading.value = false
     }
   }
 
@@ -69,6 +72,7 @@ export const useScanStore = defineStore('scan', () => {
     loading,
     error,
     activeScan,
+    fetchScans,
     createScan,
     refreshStatus,
     selectScan,

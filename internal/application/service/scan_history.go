@@ -97,17 +97,24 @@ func (h *ScanHistory) SaveGraph(scanID string, nodes []Resource, edges []Relatio
 }
 
 func (h *ScanHistory) GetScans() []ScanHistoryEntry {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
+	h.load()
 	result := make([]ScanHistoryEntry, len(h.data.Scans))
 	copy(result, h.data.Scans)
 	return result
 }
 
 func (h *ScanHistory) GetGraph(scanID string) (GraphData, bool) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	h.load()
+
+	if h.data.Graphs == nil {
+		h.data.Graphs = make(map[string]GraphData)
+	}
 
 	graph, exists := h.data.Graphs[scanID]
 	return graph, exists
@@ -133,6 +140,10 @@ func (h *ScanHistory) load() {
 		return
 	}
 	h.data = history
+
+	if h.data.Graphs == nil {
+		h.data.Graphs = make(map[string]GraphData)
+	}
 }
 
 func (h *ScanHistory) save() {

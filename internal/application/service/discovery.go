@@ -93,11 +93,20 @@ func (s *discoveryService) GetScanStatus(ctx context.Context, scanID string) (st
 	record, exists := s.scans[scanID]
 	s.mu.RUnlock()
 
-	if !exists {
-		return "NOT_FOUND", 0, nil
+	if exists {
+		return record.Status, 0, nil
 	}
 
-	return record.Status, 0, nil
+	if s.history != nil {
+		scans := s.history.GetScans()
+		for _, scan := range scans {
+			if scan.ID == scanID {
+				return scan.Status, scan.NodeCount, nil
+			}
+		}
+	}
+
+	return "NOT_FOUND", 0, nil
 }
 
 func (s *discoveryService) CancelScan(ctx context.Context, scanID string) error {
