@@ -53,8 +53,21 @@ func (f *fakeGraphService) GetRelationships(ctx context.Context, resourceID stri
 	return nil, nil
 }
 
+type fakeConnectionStatus struct{}
+
+func (f *fakeConnectionStatus) GetConnectionStatus() transport.ConnectionStatus {
+	return transport.ConnectionStatus{
+		State:            "connected",
+		AccountID:        "123456789012",
+		ARN:              "arn:aws:iam::123456789012:role/test",
+		Region:           "us-east-1",
+		CredentialSource: "profile",
+		Message:          "",
+	}
+}
+
 func TestHealthEndpoint(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{})
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -70,7 +83,7 @@ func TestHealthEndpoint(t *testing.T) {
 }
 
 func TestReadyEndpoint(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{})
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -86,7 +99,7 @@ func TestReadyEndpoint(t *testing.T) {
 }
 
 func TestStartScan(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{})
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -102,7 +115,7 @@ func TestStartScan(t *testing.T) {
 }
 
 func TestGetScanStatus(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{})
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -118,7 +131,7 @@ func TestGetScanStatus(t *testing.T) {
 }
 
 func TestGetGraph(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{})
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -134,7 +147,7 @@ func TestGetGraph(t *testing.T) {
 }
 
 func TestGetResource(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{})
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -150,7 +163,7 @@ func TestGetResource(t *testing.T) {
 }
 
 func TestGetRelationships(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{})
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -166,7 +179,7 @@ func TestGetRelationships(t *testing.T) {
 }
 
 func TestScanStatusTimestamp(t *testing.T) {
-	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{})
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{})
 	server := httptest.NewServer(mux)
 	defer server.Close()
 

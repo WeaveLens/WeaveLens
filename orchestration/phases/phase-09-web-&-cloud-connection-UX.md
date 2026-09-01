@@ -2,7 +2,7 @@
 
 ## Role
 
-You are a senior frontend/backend engineer specializing in enterprise infrastructure tooling and cloud connection UX.
+You are a senior frontend/backend engineer specializing in enterprise infrastructure tooling, cloud connection UX, responsive desktop applications, and infrastructure visualization.
 
 You are working on the WeaveLens project as part of an orchestrated multi-agent development workflow.
 
@@ -16,9 +16,28 @@ Azure and GCP may be supported in the future.
 
 The current goal is NOT to implement multi-cloud functionality.
 
-The goal is to build a clean Web UX that works for AWS today and can naturally expand to additional cloud providers later.
+The goal is to build a clean, enterprise-oriented Web UX that works for AWS today and can naturally expand to additional cloud providers later.
 
-## Objective
+WeaveLens is primarily a desktop-oriented infrastructure visualization tool.
+
+The primary target display is Full HD:
+
+```text
+1920 × 1080
+```
+
+The UI must also support larger desktop displays such as:
+
+```text
+2560 × 1440
+3840 × 2160
+```
+
+The layout must be responsive and must not be designed around a single fixed screen resolution.
+
+---
+
+# Objective
 
 Implement the Web UI for:
 
@@ -29,13 +48,17 @@ Implement the Web UI for:
 * scan status;
 * infrastructure graph;
 * resource details;
-* AWS setup guidance.
+* resource legend;
+* AWS setup guidance;
+* responsive desktop layout.
 
 The frontend MUST NOT directly communicate with AWS.
 
 The backend is responsible for AWS authentication and AWS API access.
 
-## Frontend Architecture
+---
+
+# 1. Frontend Architecture
 
 Use the project's selected frontend framework.
 
@@ -57,7 +80,166 @@ AWS
 
 Do NOT import AWS SDKs into the frontend.
 
-## Cloud Provider UX
+Do NOT allow frontend components to contain AWS API calls.
+
+---
+
+# 2. Desktop & Responsive Design
+
+## Primary Resolution
+
+The primary design baseline is:
+
+```text
+1920 × 1080 Full HD
+```
+
+The application must be designed and visually validated for this resolution.
+
+The UI must also work correctly on larger displays, including:
+
+```text
+2560 × 1440
+3840 × 2160
+```
+
+## Responsive Requirement
+
+The UI MUST NOT assume a fixed:
+
+```text
+width: 1920px;
+height: 1080px;
+```
+
+Do not hard-code the entire application layout to Full HD dimensions.
+
+Instead, use responsive layout mechanisms such as:
+
+* CSS Grid;
+* Flexbox;
+* relative sizing;
+* viewport-aware sizing;
+* responsive breakpoints;
+* min/max constraints where appropriate.
+
+The application should adapt to available viewport space.
+
+## Large Screens
+
+On larger displays:
+
+```text
+2560 × 1440
+3840 × 2160
+```
+
+the application must:
+
+* use additional available space effectively;
+* avoid excessive empty space;
+* keep important controls readable;
+* prevent content from becoming unnecessarily stretched;
+* maintain a consistent visual hierarchy.
+
+Do not simply scale every UI element proportionally with the viewport.
+
+## Maximum Content Width
+
+Use sensible maximum widths for content-heavy sections where appropriate.
+
+For example:
+
+```text
+Settings
+Connection configuration
+Resource details
+Documentation
+Dialogs
+```
+
+These areas should remain readable instead of becoming excessively wide on large screens.
+
+However, infrastructure visualization areas such as the graph/canvas may use most or all of the available viewport.
+
+Conceptually:
+
+```text
+┌────────────────────────────────────────────────────────────┐
+│ Header                                                     │
+├──────────────┬─────────────────────────────────────────────┤
+│              │                                             │
+│ Navigation   │              Graph / Canvas                 │
+│              │                                             │
+│              │                                             │
+│              │                                             │
+├──────────────┴─────────────────────────────────────────────┤
+│ Status / Information                                       │
+└────────────────────────────────────────────────────────────┘
+```
+
+The graph area should be allowed to expand with the viewport.
+
+## Ultrawide Displays
+
+The UI should remain usable on wide and ultrawide desktop screens.
+
+Do not allow:
+
+* excessively stretched forms;
+* unreadably long text lines;
+* controls drifting too far from their related content;
+* graph controls becoming inaccessible.
+
+Use max-width constraints for UI panels where appropriate while allowing the graph to use the available space.
+
+## Smaller Screens
+
+Although desktop is the primary target, the UI must not completely break at smaller viewport sizes.
+
+At narrower widths:
+
+* side panels may collapse;
+* navigation may become compact;
+* resource details may move into a drawer/modal;
+* graph controls may reposition;
+* horizontal overflow should be avoided where possible.
+
+Do not sacrifice desktop visualization quality merely to optimize for mobile.
+
+## Browser Zoom
+
+The UI should remain usable under common browser zoom levels.
+
+Do not rely on absolute pixel positioning for core functionality.
+
+---
+
+# 3. Design System
+
+Use the project's existing design system if one exists.
+
+If no design system exists, establish a minimal consistent system for:
+
+* spacing;
+* typography;
+* headings;
+* buttons;
+* forms;
+* cards;
+* badges;
+* status indicators;
+* dialogs;
+* navigation;
+* panels.
+
+Avoid introducing multiple UI libraries without justification.
+
+Keep visual language consistent throughout WeaveLens.
+
+---
+
+# 4. Cloud Provider UX
 
 Use provider-neutral UI concepts where they make sense.
 
@@ -93,9 +275,11 @@ Identity:
 arn:aws:iam::123456789012:role/WeaveLensScanner
 ```
 
-Do not display unsupported Azure/GCP connection options as if they are functional.
+Do NOT display unsupported Azure/GCP connection options as if they are functional.
 
-## AWS Credentials
+---
+
+# 5. AWS Credentials
 
 The Web UI MUST NOT provide a form for:
 
@@ -103,18 +287,25 @@ The Web UI MUST NOT provide a form for:
 * AWS Secret Access Key;
 * AWS Session Token.
 
-Do not implement:
+Do NOT implement:
 
 ```text
 AWS Login
-Access Key
-Secret Key
+
+Access Key:
+[................]
+
+Secret Key:
+[................]
+
 [Login]
 ```
 
 The frontend must never receive AWS secret material.
 
-## Credential Model
+---
+
+# 6. Credential Model
 
 WeaveLens uses credentials available to the backend/runtime environment.
 
@@ -133,7 +324,9 @@ For cross-account access, the backend may use STS AssumeRole according to Phase 
 
 The frontend does not manage the underlying credentials.
 
-## AWS Connection Status
+---
+
+# 7. AWS Connection Status
 
 Provide a clear connection state:
 
@@ -151,7 +344,9 @@ Do not expose raw AWS SDK errors directly to users.
 
 Translate errors into useful user-facing messages while preserving technical details in backend logs.
 
-## Connection Information
+---
+
+# 8. Connection Information
 
 When connected, display safe identity information such as:
 
@@ -168,7 +363,9 @@ Never display:
 * Session Token;
 * credential file contents.
 
-## AWS Setup Guide
+---
+
+# 9. AWS Setup Guide
 
 Provide a concise setup/help experience for users who do not have AWS credentials available to the backend.
 
@@ -182,7 +379,7 @@ or an equivalent route following the project's routing conventions.
 
 The setup guide should explain:
 
-### Local development
+## Local Development
 
 1. Install/configure AWS CLI.
 2. Create or select an AWS profile.
@@ -198,13 +395,13 @@ aws configure --profile weavelens
 
 Then:
 
-```bash
+```text
 AWS_PROFILE=weavelens
 ```
 
 The guide must NOT ask the user to paste their Secret Access Key into the browser.
 
-### Cross-account
+## Cross-Account
 
 Explain at a high level that WeaveLens can use an IAM Role through STS AssumeRole.
 
@@ -212,7 +409,9 @@ Explain that the role must grant the required permissions and that the runtime i
 
 Do not implement an interactive AWS IAM provisioning workflow in this phase.
 
-## Product UX Principle
+---
+
+# 10. Product UX Principle
 
 The setup guide is documentation/help, not an AWS authentication portal.
 
@@ -220,7 +419,9 @@ Do not attempt to replicate AWS login inside WeaveLens.
 
 Do not ask users to enter long-lived AWS credentials into the Web UI.
 
-## Scan UX
+---
+
+# 11. Scan UX
 
 Provide a clear scan workflow.
 
@@ -251,29 +452,81 @@ The UI should clearly communicate:
 * scan failed;
 * scan cancelled.
 
-## Graph UI
+---
 
-Display discovered resources and relationships visually.
+# 12. Graph UI
 
-Use the existing graph model/API from previous phases.
+The infrastructure graph is one of the primary features of WeaveLens.
+
+The graph should use the available viewport effectively.
+
+At Full HD:
+
+```text
+1920 × 1080
+```
+
+the graph must have sufficient visual space to display a realistic infrastructure topology.
+
+At larger resolutions:
+
+```text
+2560 × 1440
+3840 × 2160
+```
+
+the graph should expand naturally rather than remaining constrained to a small fixed canvas.
+
+Use:
+
+* zoom;
+* pan;
+* fit-to-screen;
+* resource selection;
+* relationship highlighting;
+* appropriate graph controls.
+
+Do not use fixed graph dimensions such as:
+
+```text
+width: 1200px;
+height: 700px;
+```
+
+unless they are only fallback values inside a responsive layout.
+
+The graph container should generally follow the available viewport.
+
+---
+
+# 13. Resource Visualization
 
 Resources should have visual differentiation by resource type.
 
-For example:
+Examples:
 
 ```text
 VPC
 Subnet
 EC2
 RDS
-ALB
+Load Balancer
 ```
 
 Use a consistent visual legend.
 
-Do not encode AWS-specific knowledge directly into generic UI components where avoidable.
+Do not rely only on color to distinguish resources.
 
-## Legend
+Each resource type must also have:
+
+* text;
+* icon;
+* label;
+* or another accessible visual indicator.
+
+---
+
+# 14. Legend
 
 Provide a clear legend explaining resource visualization.
 
@@ -289,17 +542,21 @@ Legend
 ● Load Balancer
 ```
 
-The exact visual representation should follow the project's existing design system.
+The legend should remain accessible while exploring the graph.
 
-## Resource Details
+On smaller screens, the legend may collapse into a panel or control.
+
+---
+
+# 15. Resource Details
 
 Selecting a resource should show useful non-secret metadata.
 
-Examples:
+Example:
 
 ```text
 Resource
-────────────────────
+────────────────────────
 Type: EC2 Instance
 ID: i-0123456789
 Region: ap-southeast-1
@@ -307,9 +564,49 @@ VPC: vpc-0123456789
 State: running
 ```
 
+The resource detail panel should work appropriately across:
+
+```text
+1920 × 1080
+2560 × 1440
+3840 × 2160
+```
+
+On smaller screens, it may become a drawer or modal.
+
 Do not expose credentials or sensitive configuration unnecessarily.
 
-## API Boundary
+---
+
+# 16. Page Layout
+
+Use a layout appropriate for an enterprise infrastructure tool.
+
+Suggested structure:
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ Header                                                       │
+├─────────────┬────────────────────────────────────────────────┤
+│             │                                                │
+│ Sidebar     │ Main Content                                   │
+│             │                                                │
+│ Dashboard   │                                                │
+│ Connections │                                                │
+│ Scans       │                                                │
+│ Graph       │                                                │
+│ Settings    │                                                │
+│             │                                                │
+└─────────────┴────────────────────────────────────────────────┘
+```
+
+The exact navigation structure may follow the existing application architecture.
+
+Do not create unnecessary pages.
+
+---
+
+# 17. API Boundary
 
 Frontend should communicate with backend APIs only.
 
@@ -318,23 +615,25 @@ Conceptually:
 ```text
 Frontend
    │
-   ├── GET connection status
-   ├── GET AWS identity
-   ├── POST scan
-   ├── GET scan status
-   ├── GET resources
-   └── GET graph
+   ├── Get connection status
+   ├── Get AWS identity
+   ├── Start scan
+   ├── Get scan status
+   ├── Get resources
+   └── Get graph
 ```
 
-The exact endpoints must follow the existing backend/API contracts.
+The exact endpoints must follow existing backend/API contracts.
 
 Do not invent a second API contract if one already exists.
 
-## Error UX
+---
+
+# 18. Error UX
 
 Errors should be actionable.
 
-Examples:
+Example:
 
 ```text
 AWS credentials not found.
@@ -352,15 +651,32 @@ The current AWS identity does not have permission
 to perform this discovery operation.
 ```
 
-Do not display:
+Do not display raw SDK exceptions as the primary user-facing message.
+
+---
+
+# 19. Loading & Empty States
+
+Every major data-driven page must have appropriate:
+
+* loading state;
+* empty state;
+* error state;
+* success state.
+
+For example:
 
 ```text
-AccessDeniedException: ...
+No scan has been performed yet.
+
+Connect an AWS account and start your first scan.
 ```
 
-as the primary user-facing message.
+Avoid blank screens while data is loading.
 
-## Multi-Cloud Future Compatibility
+---
+
+# 20. Multi-Cloud Future Compatibility
 
 Design reusable UI components where it provides real value.
 
@@ -374,7 +690,7 @@ ConnectionStatus
 SetupGuide
 ```
 
-Provider-specific implementation may be composed inside them.
+Provider-specific behavior may be composed inside these components.
 
 Do NOT create:
 
@@ -387,7 +703,9 @@ without actual Azure/GCP functionality.
 
 Do NOT add disabled fake providers merely for architectural appearance.
 
-## Security Requirements
+---
+
+# 21. Security Requirements
 
 1. Frontend never calls AWS directly.
 2. Frontend never stores AWS secret credentials.
@@ -398,36 +716,9 @@ Do NOT add disabled fake providers merely for architectural appearance.
 7. Backend errors exposed to frontend must not contain secrets.
 8. HTTPS must be used in production deployment.
 
-## Responsive UX
+---
 
-The graph visualization must remain usable on desktop screens.
-
-Handle:
-
-* large graphs;
-* zoom;
-* pan;
-* resource selection;
-* relationship visibility.
-
-Do not attempt to solve arbitrary graph-scale optimization in this phase.
-
-## Testing
-
-Add appropriate tests for:
-
-* connection status;
-* scan states;
-* error states;
-* setup guide rendering;
-* resource details;
-* graph rendering;
-* legend;
-* API error handling.
-
-Do not require real AWS credentials for frontend tests.
-
-## Accessibility
+# 22. Accessibility
 
 Use accessible:
 
@@ -439,9 +730,59 @@ Use accessible:
 
 Do not rely only on color to communicate resource type.
 
-The legend and UI should provide text labels.
+The legend and UI must provide text labels.
 
-## Constraints
+Ensure sufficient contrast.
+
+Interactive graph elements should provide accessible labels where technically possible.
+
+---
+
+# 23. Performance
+
+The Web UI should remain responsive during large infrastructure scans and graph rendering.
+
+Do not block the main UI thread unnecessarily.
+
+For graph rendering:
+
+* avoid unnecessary full graph re-renders;
+* avoid excessive DOM nodes where a canvas/WebGL approach is appropriate;
+* keep selection interactions responsive.
+
+Do not prematurely optimize before measuring.
+
+---
+
+# 24. Testing
+
+Add appropriate tests for:
+
+* connection status;
+* scan states;
+* error states;
+* setup guide rendering;
+* resource details;
+* graph rendering;
+* legend;
+* responsive layout behavior;
+* API error handling.
+
+Frontend tests must not require real AWS credentials.
+
+Where practical, verify the layout at:
+
+```text
+1920 × 1080
+2560 × 1440
+3840 × 2160
+```
+
+and at a narrower viewport to ensure the UI does not break.
+
+---
+
+# 25. Constraints
 
 Do NOT implement:
 
@@ -454,7 +795,13 @@ Do NOT implement:
 * database;
 * new authentication system for WeaveLens users unless already defined by the project architecture.
 
-## Acceptance Criteria
+Do NOT redesign the entire application unnecessarily.
+
+Do NOT introduce a UI framework solely for responsive behavior if an existing project framework already provides the required capabilities.
+
+---
+
+# 26. Acceptance Criteria
 
 1. Web UI can display AWS connection status.
 2. Web UI can display safe AWS identity information.
@@ -471,8 +818,61 @@ Do NOT implement:
 13. AWS errors are translated into useful user-facing messages.
 14. UI components are reusable where appropriate for future cloud providers.
 15. Azure/GCP functionality is NOT implemented.
+16. The primary desktop layout is designed and validated for 1920×1080.
+17. The UI works correctly at 2560×1440.
+18. The UI works correctly at 3840×2160.
+19. The graph uses available viewport space effectively.
+20. Content-heavy panels do not become excessively wide on large screens.
+21. The layout does not rely on a fixed 1920px × 1080px canvas.
+22. The UI remains usable at narrower viewport sizes.
+23. Core functionality does not depend on absolute pixel positioning.
+24. Loading, empty, error, and success states are implemented for major data-driven views.
 
-## Verification
+---
+
+# 27. Existing Implementation Review & Layout Fix
+
+This phase is an update/fix to an existing Web implementation.
+
+Do NOT assume that the current Web implementation already satisfies
+the requirements in this specification.
+
+Before implementing new functionality:
+
+1. Inspect the existing Web layout and component hierarchy.
+2. Identify the root cause of current layout and responsive issues.
+3. Fix the existing implementation rather than hiding symptoms.
+4. Preserve working functionality unless it conflicts with this specification.
+
+Specifically investigate the following existing issues:
+
+- The UI does not expand correctly on displays larger than Full HD.
+- The Resource panel may show a scrollbar even when it contains no content.
+- Resource and sidebar/panel areas may disappear when browser zoom is increased.
+- Some containers may have inappropriate fixed width/height values.
+- Nested Flexbox/Grid containers may have incorrect min-width/min-height behavior.
+- Overflow rules may cause content to be clipped.
+- Graph dimensions may be unnecessarily fixed.
+- Panels may use flex-shrink/flex-grow incorrectly.
+
+Inspect the complete layout hierarchy:
+
+```text
+Viewport
+  ↓
+Application Root
+  ↓
+Header
+  ↓
+Main Workspace
+  ├── Sidebar
+  ├── Graph / Main Content
+  └── Resource Panel
+```
+
+---
+
+# 28. Verification
 
 Run:
 
@@ -485,11 +885,41 @@ Run the frontend's configured build and test commands.
 
 Run linting and static analysis.
 
+Verify the UI at minimum:
+
+```text
+1920 × 1080
+2560 × 1440
+3840 × 2160
+```
+
+Also verify a narrower viewport to ensure the responsive layout does not break.
+
+Review:
+
+* graph usability;
+* navigation;
+* connection status;
+* setup guide;
+* resource details;
+* legend;
+* responsive behavior;
+* accessibility.
+
+Verify that no credential material is present in:
+
+* source code;
+* test fixtures;
+* browser localStorage;
+* browser session storage;
+* URLs;
+* frontend logs.
+
 Review the complete diff.
 
-Verify that no credential material is present in source code, test fixtures, browser storage, or logs.
+---
 
-## Git
+# 28. Git
 
 Create one focused commit:
 

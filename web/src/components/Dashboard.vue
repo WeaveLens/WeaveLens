@@ -33,15 +33,22 @@ watch(() => scanStore.currentScan?.id, (scanId) => {
 <template>
   <div class="app">
     <header class="app-header">
-      <h1>WeaveLens</h1>
-      <div class="header-actions">
-        <router-link to="/setup/aws" class="header-link">Setup Guide</router-link>
-        <button @click="uiStore.toggleSidebar">Toggle Sidebar</button>
-        <button @click="uiStore.toggleLegend">Toggle Legend</button>
+      <div class="header-left">
+        <h1>WeaveLens</h1>
+        <span class="header-subtitle">Infrastructure Visualization</span>
       </div>
+      <nav class="header-actions">
+        <router-link to="/setup/aws" class="header-link">Setup Guide</router-link>
+        <button @click="uiStore.toggleSidebar" class="header-btn">
+          {{ uiStore.sidebarOpen ? 'Hide' : 'Show' }} Panel
+        </button>
+        <button @click="uiStore.toggleLegend" class="header-btn">
+          {{ uiStore.legendOpen ? 'Hide' : 'Show' }} Legend
+        </button>
+      </nav>
     </header>
 
-    <div class="app-body">
+    <div class="app-body" :class="{ 'no-left': !uiStore.sidebarOpen }">
       <aside v-if="uiStore.sidebarOpen" class="left-panel">
         <CloudConnection />
         <ScanPanel />
@@ -65,62 +72,143 @@ watch(() => scanStore.currentScan?.id, (scanId) => {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  width: 100%;
+  overflow: hidden;
 }
+
 .app-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: #1976d2;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
   color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  flex-shrink: 0;
 }
+
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
 .app-header h1 {
   margin: 0;
-  font-size: 20px;
+  font-size: 22px;
+  font-weight: 600;
 }
+
+.header-subtitle {
+  font-size: 13px;
+  opacity: 0.8;
+  font-weight: 400;
+}
+
 .header-actions {
   display: flex;
   gap: 8px;
+  align-items: center;
 }
-.header-actions button {
-  padding: 6px 12px;
-  background: rgba(255,255,255,0.2);
-  border: 1px solid rgba(255,255,255,0.3);
+
+.header-btn {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s;
 }
+
+.header-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 .header-link {
-  padding: 6px 12px;
-  background: rgba(255,255,255,0.2);
-  border: 1px solid rgba(255,255,255,0.3);
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   text-decoration: none;
-  font-size: 14px;
+  font-size: 13px;
+  transition: background 0.2s;
 }
+
+.header-link:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 .app-body {
   display: flex;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
+
 .left-panel {
   width: 320px;
-  background: white;
+  min-width: 280px;
+  max-width: 400px;
+  background: #fafafa;
   border-right: 1px solid #e0e0e0;
   overflow-y: auto;
+  flex-shrink: 0;
 }
+
 .main-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-width: 0;
 }
+
 .right-panel {
   width: 320px;
-  background: white;
+  min-width: 280px;
+  max-width: 400px;
+  background: #fafafa;
   border-left: 1px solid #e0e0e0;
   overflow-y: auto;
+  flex-shrink: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1600px) {
+  .left-panel,
+  .right-panel {
+    width: 280px;
+    min-width: 260px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .left-panel,
+  .right-panel {
+    width: 260px;
+    min-width: 240px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .app-body {
+    flex-direction: column;
+  }
+  .left-panel {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    max-height: 40vh;
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .right-panel {
+    display: none;
+  }
 }
 </style>

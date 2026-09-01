@@ -37,6 +37,19 @@ type ReadyResponse struct {
 	Status string `json:"status"`
 }
 
+type ConnectionStatusGetter interface {
+	GetConnectionStatus() ConnectionStatus
+}
+
+type ConnectionStatus struct {
+	State            string `json:"state"`
+	AccountID        string `json:"accountId"`
+	ARN              string `json:"arn"`
+	Region           string `json:"region"`
+	CredentialSource string `json:"credentialSource"`
+	Message          string `json:"message"`
+}
+
 func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -51,7 +64,7 @@ func parseTime(t time.Time) string {
 	return t.Format(time.RFC3339)
 }
 
-func NewRouter(discovery service.DiscoveryService, graph service.GraphService) *http.ServeMux {
+func NewRouter(discovery service.DiscoveryService, graph service.GraphService, connection ConnectionStatusGetter) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -60,6 +73,10 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService) *
 
 	mux.HandleFunc("GET /ready", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, ReadyResponse{Status: "ready"})
+	})
+
+	mux.HandleFunc("GET /api/connection", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, connection.GetConnectionStatus())
 	})
 
 	mux.HandleFunc("POST /api/scans", func(w http.ResponseWriter, r *http.Request) {
