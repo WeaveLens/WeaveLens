@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -18,17 +19,33 @@ import (
 )
 
 type App struct {
-	config    *Config
-	logger    *slog.Logger
-	eventBus  *nats.EventBus
-	discovery discovery.ResourceDiscovery
-	identity  *credential.Identity
-	region    string
+	config            *Config
+	logger            *slog.Logger
+	eventBus          *nats.EventBus
+	discovery         discovery.ResourceDiscovery
+	identity          *credential.Identity
+	region            string
+	credentialSource  string
+}
+
+func parseLogLevel(level string) slog.Level {
+	switch strings.ToLower(level) {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn", "warning":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
 }
 
 func New(cfg *Config) *App {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
+		Level: parseLogLevel(cfg.LogLevel),
 	}))
 
 	natsClient, err := nats.Connect(context.Background(), &nats.Config{
@@ -51,12 +68,14 @@ func New(cfg *Config) *App {
 	eventBus := nats.NewEventBus(publisher, subscriber)
 
 	provider := credential.Provider(&credential.DefaultProvider{})
+	credentialSource := "default"
 	if cfg.AWSRoleARN != "" {
 		provider = credential.NewAssumeRoleProvider(provider, credential.AssumeRoleConfig{
 			RoleARN:      cfg.AWSRoleARN,
 			SessionName:  cfg.AWSRoleSessionName,
 			ExternalID:   cfg.AWSExternalID,
 		})
+		credentialSource = "assume_role"
 	}
 
 	var disc discovery.ResourceDiscovery
@@ -76,6 +95,7 @@ func New(cfg *Config) *App {
 					"accountID", identity.AccountID,
 					"arn", identity.ARN,
 					"userID", identity.UserID,
+					"credential_source", credentialSource,
 				)
 			}
 
@@ -86,12 +106,13 @@ func New(cfg *Config) *App {
 	}
 
 	return &App{
-		config:    cfg,
-		logger:    logger,
-		eventBus:  eventBus,
-		discovery: disc,
-		identity:  identity,
-		region:    cfg.AWSRegion,
+		config:           cfg,
+		logger:           logger,
+		eventBus:         eventBus,
+		discovery:        disc,
+		identity:         identity,
+		region:           cfg.AWSRegion,
+		credentialSource: credentialSource,
 	}
 }
 
@@ -102,8 +123,8 @@ func (a *App) Run(ctx context.Context) error {
 	graphService := service.NewGraphService(a.eventBus, a.logger, a.discovery)
 	exportService := service.NewExportService(graphService)
 
-	mux := transport.NewRouter(discoveryService, graphService, a, exportService)
-	server, err := transport.StartServer(":"+a.config.ServerPort, mux)
+	mux := transport.NewRouter(discoveryService, graphService, a, exportService, a.logger)
+	server, err := transport.StartServer(":"+a.config.ServerPort, mux, a.config.APIKey, a.logger)
 	if err != nil {
 		return fmt.Errorf("failed to start server: %w", err)
 	}
@@ -147,7 +168,7 @@ func (a *App) GetConnectionStatus() transport.ConnectionStatus {
 		AccountID:        a.identity.AccountID,
 		ARN:              a.identity.ARN,
 		Region:           a.region,
-		CredentialSource: "default",
+		CredentialSource: a.credentialSource,
 		Message:          "",
 	}
 }

@@ -5,14 +5,15 @@ import (
 )
 
 type Config struct {
-	ServerPort       string
-	Env              string
-	LogLevel         string
-	NATSURL          string
-	AWSRegion        string
-	AWSRoleARN       string
+	ServerPort        string
+	Env               string
+	LogLevel          string
+	NATSURL           string
+	AWSRegion         string
+	AWSRoleARN        string
 	AWSRoleSessionName string
-	AWSExternalID    string
+	AWSExternalID     string
+	APIKey            string
 }
 
 func Load() (*Config, error) {
@@ -50,5 +51,6 @@ func Load() (*Config, error) {
 		AWSRoleARN:        os.Getenv("AWS_ROLE_ARN"),
 		AWSRoleSessionName: os.Getenv("AWS_ROLE_SESSION_NAME"),
 		AWSExternalID:     os.Getenv("AWS_EXTERNAL_ID"),
+		APIKey:            os.Getenv("API_KEY"),
 	}, nil
 }

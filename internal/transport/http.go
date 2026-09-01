@@ -2,10 +2,12 @@ package transport
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/elip/WeaveLens/internal/application/service"
+	"github.com/elip/WeaveLens/internal/transport/security"
 )
 
 type ScanResponse struct {
@@ -64,7 +66,7 @@ func parseTime(t time.Time) string {
 	return t.Format(time.RFC3339)
 }
 
-func NewRouter(discovery service.DiscoveryService, graph service.GraphService, connection ConnectionStatusGetter, export service.ExportService) *http.ServeMux {
+func NewRouter(discovery service.DiscoveryService, graph service.GraphService, connection ConnectionStatusGetter, export service.ExportService, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
@@ -94,11 +96,18 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 
 		scanID, err := discovery.StartScan(r.Context(), req.Region)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
+			writeError(w, http.StatusInternalServerError, "Failed to start scan")
+			logger.Warn("scan_start_failed", "error", err, "request_id", security.GetRequestID(r.Context()))
 			return
 		}
 
 		status, _, _ := discovery.GetScanStatus(r.Context(), scanID)
+
+		logger.Info("scan_started",
+			"scan_id", scanID,
+			"region", req.Region,
+			"request_id", security.GetRequestID(r.Context()),
+		)
 
 		writeJSON(w, http.StatusAccepted, ScanResponse{
 			ID:        scanID,
@@ -128,7 +137,7 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 		scanID := r.PathValue("scanId")
 		nodes, edges, err := graph.GetGraph(r.Context(), scanID)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
+			writeError(w, http.StatusInternalServerError, "Failed to get graph")
 			return
 		}
 
@@ -153,7 +162,7 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 		resourceID := r.PathValue("resourceId")
 		relationships, err := graph.GetRelationships(r.Context(), resourceID)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
+			writeError(w, http.StatusInternalServerError, "Failed to get relationships")
 			return
 		}
 
@@ -173,9 +182,21 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 
 		data, err := export.ExportGraph(r.Context(), scanID, format)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
+			writeError(w, http.StatusInternalServerError, "Failed to export graph")
+			logger.Warn("export_failed",
+				"scan_id", scanID,
+				"format", format,
+				"error", err,
+				"request_id", security.GetRequestID(r.Context()),
+			)
 			return
 		}
+
+		logger.Info("graph_exported",
+			"scan_id", scanID,
+			"format", format,
+			"request_id", security.GetRequestID(r.Context()),
+		)
 
 		switch format {
 		case service.ExportFormatJSON:
@@ -196,10 +217,18 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 	return mux
 }
 
-func StartServer(addr string, mux *http.ServeMux) (*http.Server, error) {
+func StartServer(addr string, mux *http.ServeMux, apiKey string, logger *slog.Logger) (*http.Server, error) {
+	var handler http.Handler = mux
+	handler = security.RequestID(handler)
+	handler = security.SecurityHeaders(handler)
+
+	if apiKey != "" {
+		handler = security.RequireAPIKey(apiKey, logger)(handler)
+	}
+
 	server := &http.Server{
 		Addr:         addr,
-		Handler:      mux,
+		Handler:      handler,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  30 * time.Second,
