@@ -14,18 +14,20 @@ const scanStore = useScanStore()
 const graphStore = useGraphStore()
 const uiStore = useUiStore()
 
-onMounted(() => {
+onMounted(async () => {
   const saved = localStorage.getItem('weavelens_scan_id')
   if (saved) {
     scanStore.selectScan({ id: saved, status: 'UNKNOWN', region: '', updatedAt: '' } as any)
-    graphStore.loadGraph(saved)
+    await graphStore.loadGraph(saved)
+    await scanStore.refreshStatus(saved)
   }
 })
 
-watch(() => scanStore.currentScan?.id, (scanId) => {
+watch(() => scanStore.currentScan?.id, async (scanId) => {
   if (scanId) {
     localStorage.setItem('weavelens_scan_id', scanId)
-    graphStore.loadGraph(scanId)
+    await graphStore.loadGraph(scanId)
+    await scanStore.refreshStatus(scanId)
   }
 })
 </script>

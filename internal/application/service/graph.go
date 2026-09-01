@@ -18,6 +18,7 @@ type graphService struct {
 	mu        sync.RWMutex
 	graphs    map[string]*graph.Graph
 	discovery discovery.ResourceDiscovery
+	onScanComplete func(scanID string, nodeCount, edgeCount int)
 }
 
 func NewGraphService(eventBus *nats.EventBus, logger *slog.Logger, discovery discovery.ResourceDiscovery) GraphService {
@@ -26,6 +27,16 @@ func NewGraphService(eventBus *nats.EventBus, logger *slog.Logger, discovery dis
 		logger:    logger,
 		graphs:    make(map[string]*graph.Graph),
 		discovery: discovery,
+	}
+}
+
+func NewGraphServiceWithCallback(eventBus *nats.EventBus, logger *slog.Logger, discovery discovery.ResourceDiscovery, onScanComplete func(scanID string, nodeCount, edgeCount int)) GraphService {
+	return &graphService{
+		eventBus:  eventBus,
+		logger:    logger,
+		graphs:    make(map[string]*graph.Graph),
+		discovery: discovery,
+		onScanComplete: onScanComplete,
 	}
 }
 
@@ -64,6 +75,10 @@ func (s *graphService) buildGraph(scanID string) (*graph.Graph, error) {
 	s.mu.Lock()
 	s.graphs[scanID] = g
 	s.mu.Unlock()
+
+	if s.onScanComplete != nil && scanID != "" {
+		s.onScanComplete(scanID, g.NodeCount(), g.RelationshipCount())
+	}
 
 	return g, nil
 }

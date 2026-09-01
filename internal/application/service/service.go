@@ -7,6 +7,7 @@ type DiscoveryService interface {
 	GetScanStatus(ctx context.Context, scanID string) (string, int, error)
 	CancelScan(ctx context.Context, scanID string) error
 	ListResources(ctx context.Context, scanID, category, resourceType string) ([]Resource, error)
+	CompleteScan(ctx context.Context, scanID string, nodeCount, edgeCount int) error
 }
 
 type GraphService interface {
@@ -17,19 +18,19 @@ type GraphService interface {
 }
 
 type Resource struct {
-	ID       string
-	Name     string
-	Type     string
-	Category string
-	ARN      string
-	Region   string
-	Metadata map[string]string
+	ID       string            `json:"id"`
+	Name     string            `json:"name"`
+	Type     string            `json:"type"`
+	Category string            `json:"category"`
+	ARN      string            `json:"arn"`
+	Region   string            `json:"region"`
+	Metadata map[string]string `json:"metadata"`
 }
 
 type Relationship struct {
-	ID       string
-	SourceID string
-	TargetID string
-	Type     string
-	Metadata map[string]string
+	ID       string            `json:"id"`
+	SourceID string            `json:"sourceId"`
+	TargetID string            `json:"targetId"`
+	Type     string            `json:"type"`
+	Metadata map[string]string `json:"metadata"`
 }

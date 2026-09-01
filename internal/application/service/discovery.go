@@ -92,6 +92,32 @@ func (s *discoveryService) CancelScan(ctx context.Context, scanID string) error 
 	return nil
 }
 
+func (s *discoveryService) CompleteScan(ctx context.Context, scanID string, nodeCount, edgeCount int) error {
+	s.mu.Lock()
+	record, exists := s.scans[scanID]
+	if exists {
+		record.Status = "COMPLETED"
+		record.UpdatedAt = time.Now()
+	}
+	s.mu.Unlock()
+
+	if !exists {
+		return nil
+	}
+
+	evt := &event.ScanCompletedEvent{
+		ScanID:        scanID,
+		ResourceCount: nodeCount,
+	}
+
+	if err := s.eventBus.PublishScanCompleted(ctx, evt); err != nil {
+		s.logger.Error("failed to publish scan completed event", "error", err, "scanID", scanID)
+	}
+
+	s.logger.Info("scan completed", "scanID", scanID, "resources", nodeCount, "relationships", edgeCount)
+	return nil
+}
+
 func (s *discoveryService) ListResources(ctx context.Context, scanID, category, resourceType string) ([]Resource, error) {
 	if s.discovery == nil {
 		return []Resource{}, nil

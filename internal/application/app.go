@@ -120,7 +120,11 @@ func (a *App) Run(ctx context.Context) error {
 	a.logger.Info("starting WeaveLens", "env", a.config.Env, "port", a.config.ServerPort)
 
 	discoveryService := service.NewDiscoveryService(a.eventBus, a.logger, a.discovery)
-	graphService := service.NewGraphService(a.eventBus, a.logger, a.discovery)
+	graphService := service.NewGraphServiceWithCallback(a.eventBus, a.logger, a.discovery, func(scanID string, nodeCount, edgeCount int) {
+		if err := discoveryService.CompleteScan(context.Background(), scanID, nodeCount, edgeCount); err != nil {
+			a.logger.Error("failed to complete scan", "error", err, "scanID", scanID)
+		}
+	})
 	exportService := service.NewExportService(graphService)
 
 	mux := transport.NewRouter(discoveryService, graphService, a, exportService, a.logger)
