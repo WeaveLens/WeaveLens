@@ -1,12 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import App from '../App.vue'
+import Dashboard from '../components/Dashboard.vue'
 import SetupGuide from '../components/SetupGuide.vue'
 
 const routes = [
   {
     path: '/',
     name: 'dashboard',
-    component: App,
+    component: Dashboard,
   },
   {
     path: '/setup/aws',
