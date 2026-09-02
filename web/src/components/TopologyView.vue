@@ -6,6 +6,12 @@ import { getCategoryColor } from '../config/categories'
 
 const graphStore = useGraphStore()
 const containerRef = ref<HTMLDivElement | null>(null)
+const regionFilterRef = ref<HTMLElement | null>(null)
+const typeFilterRef = ref<HTMLElement | null>(null)
+const tagFilterRef = ref<HTMLElement | null>(null)
+const advancedFilterRef = ref<HTMLElement | null>(null)
+const valueInputRef = ref<HTMLElement | null>(null)
+const valueDropdownPos = ref({ top: 0, left: 0, width: 0 })
 const regionDropdownOpen = ref(false)
 const typeDropdownOpen = ref(false)
 const tagDropdownOpen = ref(false)
@@ -13,6 +19,38 @@ const advancedDropdownOpen = ref(false)
 const showAddRule = ref(false)
 const valueDropdownOpen = ref(false)
 const newRule = ref({ field: '', value: '' })
+
+function handleClickOutside(e: MouseEvent) {
+  const target = e.target as Node
+  if (regionFilterRef.value && !regionFilterRef.value.contains(target)) {
+    regionDropdownOpen.value = false
+  }
+  if (typeFilterRef.value && !typeFilterRef.value.contains(target)) {
+    typeDropdownOpen.value = false
+  }
+  if (tagFilterRef.value && !tagFilterRef.value.contains(target)) {
+    tagDropdownOpen.value = false
+  }
+  if (valueInputRef.value && !valueInputRef.value.contains(target)) {
+    valueDropdownOpen.value = false
+  }
+  if (advancedFilterRef.value && !advancedFilterRef.value.contains(target)) {
+    if (advancedDropdownOpen.value) {
+      advancedDropdownOpen.value = false
+      valueDropdownOpen.value = false
+    }
+  }
+}
+
+onMounted(() => {
+  setTimeout(() => {
+    document.addEventListener('mousedown', handleClickOutside)
+  }, 0)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousedown', handleClickOutside)
+})
 
 function addRule() {
   if (newRule.value.field && newRule.value.value) {
@@ -23,8 +61,15 @@ function addRule() {
   }
 }
 
-function closeValueDropdown() {
-  setTimeout(() => valueDropdownOpen.value = false, 200)
+function openValueDropdown() {
+  if (!valueInputRef.value) return
+  const rect = valueInputRef.value.getBoundingClientRect()
+  valueDropdownPos.value = {
+    top: rect.bottom + 2,
+    left: rect.left,
+    width: rect.width,
+  }
+  valueDropdownOpen.value = true
 }
 
 let cy: Core | null = null
@@ -227,7 +272,7 @@ defineExpose({ fitGraph })
     </div>
     <div ref="containerRef" class="topology-view" />
     <div class="graph-overlay" v-if="graphStore.regions.length > 0 || graphStore.types.length > 0 || graphStore.availableTags.length > 0">
-      <div class="filter-group" v-if="graphStore.regions.length > 0">
+      <div class="filter-group" v-if="graphStore.regions.length > 0" ref="regionFilterRef">
         <button class="overlay-btn" @click="regionDropdownOpen = !regionDropdownOpen">
           🌍 Region ({{ graphStore.regionFilter.length || 'All' }})
         </button>
@@ -245,7 +290,7 @@ defineExpose({ fitGraph })
           </button>
         </div>
       </div>
-      <div class="filter-group" v-if="graphStore.types.length > 0">
+      <div class="filter-group" v-if="graphStore.types.length > 0" ref="typeFilterRef">
         <button class="overlay-btn" @click="typeDropdownOpen = !typeDropdownOpen">
           📦 Type ({{ graphStore.typeFilter.length || 'All' }})
         </button>
@@ -263,7 +308,7 @@ defineExpose({ fitGraph })
           </button>
         </div>
       </div>
-      <div class="filter-group" v-if="graphStore.availableTags.length > 0">
+      <div class="filter-group" v-if="graphStore.availableTags.length > 0" ref="tagFilterRef">
         <button class="overlay-btn" @click="tagDropdownOpen = !tagDropdownOpen">
           🏷️ Tags ({{ graphStore.tagFilter.length || 'All' }})
         </button>
@@ -284,7 +329,7 @@ defineExpose({ fitGraph })
           </button>
         </div>
       </div>
-      <div class="filter-group">
+      <div class="filter-group" ref="advancedFilterRef">
         <button class="overlay-btn" @click="advancedDropdownOpen = !advancedDropdownOpen">
           🔍 Advanced ({{ graphStore.filterRules.length }})
         </button>
@@ -304,18 +349,27 @@ defineExpose({ fitGraph })
                 {{ field }}
               </option>
             </select>
-            <div class="value-input-wrapper">
+            <div class="value-input-wrapper" ref="valueInputRef">
               <input
                 v-model="newRule.value"
                 class="rule-input"
                 :placeholder="newRule.field ? 'Value (click for suggestions)' : 'Select field first'"
                 :disabled="!newRule.field"
-                @focus="valueDropdownOpen = true"
-                @click="valueDropdownOpen = true"
-                @blur="closeValueDropdown()"
+                @focus="openValueDropdown()"
+                @click="openValueDropdown()"
                 @input="valueDropdownOpen = false"
               />
-              <div class="value-dropdown" v-if="valueDropdownOpen && graphStore.getAvailableValues(newRule.field).length">
+            </div>
+            <Teleport to="body">
+              <div
+                v-if="valueDropdownOpen && graphStore.getAvailableValues(newRule.field).length"
+                class="value-dropdown"
+                :style="{
+                  top: valueDropdownPos.top + 'px',
+                  left: valueDropdownPos.left + 'px',
+                  width: valueDropdownPos.width + 'px',
+                }"
+              >
                 <div
                   v-for="val in graphStore.getAvailableValues(newRule.field)"
                   :key="val"
@@ -325,7 +379,7 @@ defineExpose({ fitGraph })
                   {{ val }}
                 </div>
               </div>
-            </div>
+            </Teleport>
             <button class="add-btn" @click="addRule" :disabled="!newRule.field || !newRule.value">Add</button>
             <button class="cancel-btn" @click="showAddRule = false; valueDropdownOpen = false">Cancel</button>
           </div>
@@ -577,18 +631,14 @@ defineExpose({ fitGraph })
 }
 
 .value-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
+  position: fixed;
   background: white;
   border: 1px solid #ddd;
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   max-height: 150px;
   overflow-y: auto;
-  z-index: 200;
-  margin-top: 2px;
+  z-index: 9999;
 }
 
 .value-option {
