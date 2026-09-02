@@ -1,4 +1,4 @@
-.PHONY: build test lint run clean
+.PHONY: build test lint run clean install-hooks
 
 BINARY=weavelens
 GO=go
@@ -21,3 +21,6 @@ run: build
 
 clean:
 	rm -rf bin/ .cache/
+
+install-hooks:
+	which lefthook >/dev/null 2>&1 && lefthook install || echo "lefthook not installed. Install with: go install github.com/evilmartians/lefthook@latest"

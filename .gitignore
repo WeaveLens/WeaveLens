@@ -38,3 +38,6 @@ Thumbs.db
 # Environment files
 .env
 .env.local
+
+# Lefthook local config (user-specific overrides)
+.lefthook-local/

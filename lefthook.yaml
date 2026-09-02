@@ -1,0 +1,18 @@
+pre-commit:
+  go-fmt:
+    run: bash -c 'unformatted=$(gofmt -l {files}); [ -z "$unformatted" ]'
+    only:
+      - "*.go"
+
+  go-vet:
+    run: go vet ./...
+    only:
+      - "*.go"
+
+  frontend-typecheck:
+    run: npx vue-tsc -b --noEmit
+    working_directory: web
+    only:
+      - "src/**/*.ts"
+      - "src/**/*.vue"
+      - "src/**/*.js"

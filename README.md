@@ -177,6 +177,29 @@ npm run dev
 
 ## Development
 
+### Git Hooks (Lefthook)
+
+This project uses [Lefthook](https://github.com/evilmartians/lefthook) for managing Git hooks.
+Pre-commit hooks verify Go formatting, run `go vet`, and check frontend types.
+
+Install Lefthook (one-time):
+
+```bash
+go install github.com/evilmartians/lefthook@latest
+```
+
+Install hooks:
+
+```bash
+make install-hooks
+```
+
+To skip hooks for a commit:
+
+```bash
+git commit -k "message"
+```
+
 ```bash
 # Run tests
 make test
