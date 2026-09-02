@@ -167,6 +167,43 @@ func (s *discoveryService) CompleteScan(ctx context.Context, scanID string, node
 	return nil
 }
 
+func (s *discoveryService) DeleteScan(ctx context.Context, scanID string) (bool, error) {
+	if s.history == nil {
+		return false, nil
+	}
+
+	scan, found := s.history.FindScan(scanID)
+	if !found {
+		return false, nil
+	}
+
+	if scan.Status == "RUNNING" {
+		s.mu.RLock()
+		_, inMemory := s.scans[scanID]
+		s.mu.RUnlock()
+		if inMemory {
+			s.logger.Warn("attempted to delete running scan", "scanID", scanID)
+			return false, nil
+		}
+	}
+
+	s.mu.Lock()
+	delete(s.scans, scanID)
+	s.mu.Unlock()
+
+	if s.graphService != nil {
+		s.graphService.SetScanRegions(scanID, nil)
+	}
+
+	removed := s.history.RemoveScan(scanID)
+	if !removed {
+		return false, nil
+	}
+
+	s.logger.Info("scan deleted", "scanID", scanID)
+	return true, nil
+}
+
 func (s *discoveryService) ListResources(ctx context.Context, scanID, category, resourceType string) ([]Resource, error) {
 	if s.discovery == nil {
 		return []Resource{}, nil

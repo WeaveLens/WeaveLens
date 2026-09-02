@@ -154,6 +154,22 @@ func (h *ScanHistory) UpdateScan(scanID, status string, nodeCount, edgeCount int
 	h.signalChange()
 }
 
+func (h *ScanHistory) RemoveScan(scanID string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	for i, scan := range h.data.Scans {
+		if scan.ID == scanID {
+			h.data.Scans = append(h.data.Scans[:i], h.data.Scans[i+1:]...)
+			delete(h.data.Graphs, scanID)
+			h.save()
+			h.signalChange()
+			return true
+		}
+	}
+	return false
+}
+
 func (h *ScanHistory) SaveGraph(scanID string, nodes []Resource, edges []Relationship) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -173,6 +189,19 @@ func (h *ScanHistory) GetScans() []ScanHistoryEntry {
 	result := make([]ScanHistoryEntry, len(h.data.Scans))
 	copy(result, h.data.Scans)
 	return result
+}
+
+func (h *ScanHistory) FindScan(scanID string) (ScanHistoryEntry, bool) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	h.load()
+	for _, scan := range h.data.Scans {
+		if scan.ID == scanID {
+			return scan, true
+		}
+	}
+	return ScanHistoryEntry{}, false
 }
 
 func (h *ScanHistory) GetGraph(scanID string) (GraphData, bool) {

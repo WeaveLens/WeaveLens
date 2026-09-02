@@ -6,6 +6,7 @@ type DiscoveryService interface {
 	StartScan(ctx context.Context, regions []string) (string, error)
 	GetScanStatus(ctx context.Context, scanID string) (string, int, error)
 	CancelScan(ctx context.Context, scanID string) error
+	DeleteScan(ctx context.Context, scanID string) (bool, error)
 	ListResources(ctx context.Context, scanID, category, resourceType string) ([]Resource, error)
 	CompleteScan(ctx context.Context, scanID string, nodeCount, edgeCount int) error
 	SetGraphService(gs GraphService)

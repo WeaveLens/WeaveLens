@@ -24,6 +24,16 @@ export async function getScanStatus(scanId: string): Promise<Scan> {
   return handleResponse<Scan>(response)
 }
 
+export async function deleteScan(scanId: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/scans/${encodeURIComponent(scanId)}`, {
+    method: 'DELETE',
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Unknown error' }))
+    throw new Error((error as { message: string }).message)
+  }
+}
+
 export async function getGraph(scanId: string): Promise<Graph> {
   const response = await fetch(`${API_BASE}/scans/${encodeURIComponent(scanId)}/graph`)
   return handleResponse<Graph>(response)

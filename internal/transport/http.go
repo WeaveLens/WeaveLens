@@ -295,6 +295,31 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 		}
 	})
 
+	mux.HandleFunc("DELETE /api/scans/{scanId}", func(w http.ResponseWriter, r *http.Request) {
+		scanID := r.PathValue("scanId")
+		deleted, err := discovery.DeleteScan(r.Context(), scanID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "Failed to delete scan")
+			logger.Warn("scan_delete_failed",
+				"scan_id", scanID,
+				"error", err,
+				"request_id", security.GetRequestID(r.Context()),
+			)
+			return
+		}
+		if !deleted {
+			writeError(w, http.StatusConflict, "Scan not found or cannot be deleted while running")
+			return
+		}
+
+		logger.Info("scan_deleted",
+			"scan_id", scanID,
+			"request_id", security.GetRequestID(r.Context()),
+		)
+
+		writeJSON(w, http.StatusOK, map[string]string{"id": scanID, "status": "deleted"})
+	})
+
 	mux.HandleFunc("GET /api/scans/{scanId}/export", func(w http.ResponseWriter, r *http.Request) {
 		scanID := r.PathValue("scanId")
 		format := service.ExportFormat(r.URL.Query().Get("format"))

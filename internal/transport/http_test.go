@@ -39,6 +39,10 @@ func (f *fakeDiscoveryService) CancelScan(ctx context.Context, scanID string) er
 	return nil
 }
 
+func (f *fakeDiscoveryService) DeleteScan(ctx context.Context, scanID string) (bool, error) {
+	return true, nil
+}
+
 func (f *fakeDiscoveryService) ListResources(ctx context.Context, scanID, category, resourceType string) ([]service.Resource, error) {
 	return nil, nil
 }
@@ -318,4 +322,65 @@ func TestMissingRegion(t *testing.T) {
 	if resp.StatusCode != http.StatusAccepted {
 		t.Errorf("POST /api/scans status = %v, want %v", resp.StatusCode, http.StatusAccepted)
 	}
+}
+
+func TestDeleteScan(t *testing.T) {
+	mux := transport.NewRouter(&fakeDiscoveryService{}, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, nil, newTestLogger())
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	req, err := http.NewRequest(http.MethodDelete, server.URL+"/api/scans/scan-123", nil)
+	if err != nil {
+		t.Fatalf("NewRequest error = %v", err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("DELETE /api/scans/scan-123 error = %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("DELETE /api/scans/scan-123 status = %v, want %v", resp.StatusCode, http.StatusOK)
+	}
+}
+
+func TestDeleteScan_RunningRejected(t *testing.T) {
+	discovery := &fakeDiscoveryServiceRejectDelete{}
+	mux := transport.NewRouter(discovery, &fakeGraphService{}, &fakeConnectionStatus{}, &fakeExportService{}, nil, newTestLogger())
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	req, err := http.NewRequest(http.MethodDelete, server.URL+"/api/scans/scan-running", nil)
+	if err != nil {
+		t.Fatalf("NewRequest error = %v", err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("DELETE /api/scans/scan-running error = %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusConflict {
+		t.Errorf("DELETE /api/scans/scan-running status = %v, want %v", resp.StatusCode, http.StatusConflict)
+	}
+}
+
+type fakeDiscoveryServiceRejectDelete struct {
+	service.DiscoveryService
+}
+
+func (f *fakeDiscoveryServiceRejectDelete) StartScan(ctx context.Context, regions []string) (string, error) {
+	return "scan-123", nil
+}
+func (f *fakeDiscoveryServiceRejectDelete) GetScanStatus(ctx context.Context, scanID string) (string, int, error) {
+	return "RUNNING", 0, nil
+}
+func (f *fakeDiscoveryServiceRejectDelete) CancelScan(ctx context.Context, scanID string) error {
+	return nil
+}
+func (f *fakeDiscoveryServiceRejectDelete) DeleteScan(ctx context.Context, scanID string) (bool, error) {
+	return false, nil
+}
+func (f *fakeDiscoveryServiceRejectDelete) ListResources(ctx context.Context, scanID, category, resourceType string) ([]service.Resource, error) {
+	return nil, nil
 }

@@ -77,16 +77,6 @@ function getRegionLabel(regionCode?: string): string {
   return found ? found.label : regionCode
 }
 
-function formatTime(utcString: string): string {
-  if (!utcString) return '—'
-  const date = new Date(utcString)
-  if (Number.isNaN(date.getTime())) return '—'
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'short',
-    timeStyle: 'medium',
-  }).format(date)
-}
-
 function loadHistoricalScan(scanId: string) {
   graphStore.clearGraph()
   graphStore.loadGraph(scanId)
@@ -98,6 +88,15 @@ async function handleStartScan() {
     ? { regions: [...selectedRegions.value] }
     : { regions: [] as string[] }
   await scanStore.createScan(config)
+}
+
+async function handleDeleteScan(scanId: string) {
+  const ok = confirm(`Delete scan "${scanId}" from history? This cannot be undone.`)
+  if (!ok) return
+  try {
+    await scanStore.removeScan(scanId)
+  } catch {
+  }
 }
 
 const statusColor = (status: string) => {
@@ -225,7 +224,18 @@ const regionButtonLabel = computed(() => {
     </div>
 
     <div v-else-if="hasScans" class="scan-history">
-      <h4>Scan History</h4>
+      <h4>
+        Scan History
+        <span
+          class="history-count"
+          :class="{ full: scanStore.isHistoryFull }"
+          :title="scanStore.isHistoryFull
+            ? 'History is full (' + scanStore.maxHistoryCount + '). Adding a new scan will remove the oldest ones.'
+            : 'Saved ' + scanStore.historyCount + ' of ' + scanStore.maxHistoryCount + ' max scans'"
+        >
+          {{ scanStore.historyCount }}/{{ scanStore.maxHistoryCount }}
+        </span>
+      </h4>
       <ul>
         <li
           v-for="scan in scanStore.scans"
@@ -243,7 +253,15 @@ const regionButtonLabel = computed(() => {
           <div class="history-meta">
             <span class="history-id">{{ scan.id }}</span>
             <span class="history-nodes">{{ scan.nodeCount || 0 }} {{ (scan.nodeCount || 0) <= 1 ? 'service' : 'services' }}</span>
-            <span class="history-time" v-show="false">{{ formatTime(scan.createdAt) }}</span>
+            <button
+              type="button"
+              class="delete-btn"
+              :disabled="scan.status === 'RUNNING'"
+              :title="scan.status === 'RUNNING' ? 'Cannot delete a running scan' : 'Delete scan'"
+              @click.stop="handleDeleteScan(scan.id)"
+            >
+              ×
+            </button>
           </div>
         </li>
       </ul>
@@ -533,6 +551,22 @@ const regionButtonLabel = computed(() => {
   color: #333;
 }
 
+.history-count {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #1976d2;
+  background: #e3f2fd;
+  padding: 2px 8px;
+  border-radius: 12px;
+  cursor: help;
+}
+
+.history-count.full {
+  color: #c62828;
+  background: #ffebee;
+}
+
 .scan-history ul {
   list-style: none;
   padding: 0;
@@ -575,6 +609,36 @@ const regionButtonLabel = computed(() => {
 
 .history-region {
   color: #666;
+  flex: 1;
+  text-align: right;
+}
+
+.delete-btn {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  color: #c62828;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.delete-btn:hover:not(:disabled) {
+  background: #ffebee;
+  border-color: #c62828;
+}
+
+.delete-btn:disabled {
+  color: #bbb;
+  cursor: not-allowed;
+  border-color: #eee;
 }
 
 .history-meta {

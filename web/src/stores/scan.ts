@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Scan, ScanConfig } from '../types'
-import { startScan, getScanStatus, getScans } from '../api/client'
+import { startScan, getScanStatus, getScans, deleteScan } from '../api/client'
 
 export const useScanStore = defineStore('scan', () => {
   const scans = ref<Scan[]>([])
@@ -10,7 +10,12 @@ export const useScanStore = defineStore('scan', () => {
   const error = ref<string | null>(null)
   const scansRevision = ref(0)
 
+  const maxHistoryCount = 20
+
   const activeScan = computed(() => scans.value.find(s => s.status === 'RUNNING') ?? null)
+
+  const historyCount = computed(() => scans.value.length)
+  const isHistoryFull = computed(() => scans.value.length >= maxHistoryCount)
 
   async function fetchScans() {
     loading.value = true
@@ -72,6 +77,19 @@ export const useScanStore = defineStore('scan', () => {
     currentScan.value = scan
   }
 
+  async function removeScan(scanId: string) {
+    try {
+      await deleteScan(scanId)
+      scans.value = scans.value.filter(s => s.id !== scanId)
+      if (currentScan.value?.id === scanId) {
+        currentScan.value = null
+      }
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : 'Failed to delete scan'
+      throw e
+    }
+  }
+
   function clearError() {
     error.value = null
   }
@@ -82,11 +100,15 @@ export const useScanStore = defineStore('scan', () => {
     loading,
     error,
     activeScan,
+    historyCount,
+    maxHistoryCount,
+    isHistoryFull,
     fetchScans,
     setScans,
     createScan,
     refreshStatus,
     selectScan,
+    removeScan,
     clearError,
   }
 })
