@@ -142,6 +142,13 @@ func (a *App) Run(ctx context.Context) error {
 	discoveryService.SetHistory(scanHistory)
 	graphService.SetHistory(scanHistory)
 
+	fileWatcher := service.NewFileWatcher(
+		scanHistory.FilePath(),
+		scanHistory.OnFileDeleted,
+		scanHistory.OnFileCreated,
+	)
+	defer fileWatcher.Stop()
+
 	exportService := service.NewExportService(graphService)
 
 	var regionService *service.RegionService
@@ -150,7 +157,7 @@ func (a *App) Run(ctx context.Context) error {
 		regionService = service.NewRegionService(fetcher)
 	}
 
-	mux := transport.NewRouter(discoveryService, graphService, a, exportService, regionService, a.logger)
+	mux := transport.NewRouter(discoveryService, graphService, a, exportService, regionService, a.logger, scanHistory.Notify())
 	server, err := transport.StartServer(":"+a.config.ServerPort, mux, a.config.APIKey, a.logger)
 	if err != nil {
 		return fmt.Errorf("failed to start server: %w", err)

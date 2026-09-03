@@ -37,6 +37,7 @@ type ScanHistory struct {
 	mu       sync.RWMutex
 	data     ScanHistoryData
 	filePath string
+	notify   chan struct{}
 }
 
 func NewScanHistory() *ScanHistory {
@@ -45,10 +46,67 @@ func NewScanHistory() *ScanHistory {
 			Scans:  []ScanHistoryEntry{},
 			Graphs: map[string]GraphData{},
 		},
-		filePath: filepath.Join(".", historyFile),
+		filePath: resolveHistoryPath(),
+		notify:   make(chan struct{}, 1),
 	}
 	h.load()
 	return h
+}
+
+func resolveHistoryPath() string {
+	if path := os.Getenv("WEAVELENS_HISTORY_FILE"); path != "" {
+		return path
+	}
+
+	dir, err := os.Getwd()
+	if err != nil {
+		return filepath.Join(".", historyFile)
+	}
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return filepath.Join(dir, historyFile)
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return filepath.Join(".", historyFile)
+		}
+		dir = parent
+	}
+}
+
+func (h *ScanHistory) Notify() <-chan struct{} {
+	return h.notify
+}
+
+func (h *ScanHistory) signalChange() {
+	select {
+	case h.notify <- struct{}{}:
+	default:
+	}
+}
+
+func (h *ScanHistory) OnFileDeleted() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	h.data = ScanHistoryData{
+		Scans:  []ScanHistoryEntry{},
+		Graphs: map[string]GraphData{},
+	}
+	h.signalChange()
+}
+
+func (h *ScanHistory) FilePath() string {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return h.filePath
+}
+
+func (h *ScanHistory) OnFileCreated() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.load()
+	h.signalChange()
 }
 
 func (h *ScanHistory) AddScan(scanID, region string) {
@@ -66,6 +124,7 @@ func (h *ScanHistory) AddScan(scanID, region string) {
 	h.data.Scans = append([]ScanHistoryEntry{entry}, h.data.Scans...)
 	h.truncate()
 	h.save()
+	h.signalChange()
 }
 
 func (h *ScanHistory) UpdateScan(scanID, status string, nodeCount, edgeCount int) {
@@ -83,6 +142,7 @@ func (h *ScanHistory) UpdateScan(scanID, status string, nodeCount, edgeCount int
 		}
 	}
 	h.save()
+	h.signalChange()
 }
 
 func (h *ScanHistory) SaveGraph(scanID string, nodes []Resource, edges []Relationship) {

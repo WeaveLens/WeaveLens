@@ -58,3 +58,77 @@ export async function getConnectionStatus(): Promise<ConnectionStatus> {
   const response = await fetch(`${API_BASE}/connection`)
   return handleResponse<ConnectionStatus>(response)
 }
+
+type ScanListener = (scans: Scan[]) => void
+
+class ScanStreamManager {
+  private eventSource: EventSource | null = null
+  private listeners: Set<ScanListener> = new Set()
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
+
+  subscribe(onUpdate: ScanListener): () => void {
+    this.listeners.add(onUpdate)
+
+    if (this.listeners.size === 1) {
+      this.connect()
+    } else {
+      getScans().then((scans) => this.notify(scans)).catch(() => {})
+    }
+
+    return () => {
+      this.listeners.delete(onUpdate)
+      if (this.listeners.size === 0) {
+        this.disconnect()
+      }
+    }
+  }
+
+  private connect() {
+    if (this.eventSource) return
+
+    this.eventSource = new EventSource(`${API_BASE}/scans/stream`)
+
+    this.eventSource.onmessage = (event) => {
+      try {
+        const scans = JSON.parse(event.data) as Scan[]
+        this.notify(scans)
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
+    this.eventSource.onerror = () => {
+      this.eventSource?.close()
+      this.eventSource = null
+      this.scheduleReconnect()
+    }
+  }
+
+  private disconnect() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
+    this.eventSource?.close()
+    this.eventSource = null
+  }
+
+  private scheduleReconnect() {
+    if (this.reconnectTimer) return
+    if (this.listeners.size === 0) return
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null
+      this.connect()
+    }, 2000)
+  }
+
+  private notify(scans: Scan[]) {
+    this.listeners.forEach((fn) => fn(scans))
+  }
+}
+
+const scanStreamManager = new ScanStreamManager()
+
+export function subscribeScans(onUpdate: (scans: Scan[]) => void): () => void {
+  return scanStreamManager.subscribe(onUpdate)
+}

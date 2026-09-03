@@ -2,6 +2,7 @@ package transport
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -68,8 +69,21 @@ func parseTime(t time.Time) string {
 	return t.UTC().Format(time.RFC3339)
 }
 
-func NewRouter(discovery service.DiscoveryService, graph service.GraphService, connection ConnectionStatusGetter, export service.ExportService, regions *service.RegionService, logger *slog.Logger) *http.ServeMux {
+func NewRouter(discovery service.DiscoveryService, graph service.GraphService, connection ConnectionStatusGetter, export service.ExportService, regions *service.RegionService, logger *slog.Logger, notifiers ...<-chan struct{}) *http.ServeMux {
 	mux := http.NewServeMux()
+	broadcaster := NewScanBroadcaster()
+
+	var scanNotifier <-chan struct{}
+	if len(notifiers) > 0 {
+		scanNotifier = notifiers[0]
+	}
+	if scanNotifier != nil {
+		go func() {
+			for range scanNotifier {
+				broadcaster.Broadcast(discovery.GetScans())
+			}
+		}()
+	}
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, HealthResponse{Status: "healthy"})
@@ -203,6 +217,41 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 		writeJSON(w, http.StatusOK, scans)
 	})
 
+	mux.HandleFunc("GET /api/scans/stream", func(w http.ResponseWriter, r *http.Request) {
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+
+		ch := broadcaster.Subscribe()
+		defer broadcaster.Unsubscribe(ch)
+
+		scans := discovery.GetScans()
+		if data, err := json.Marshal(scans); err == nil {
+			fmt.Fprintf(w, "data: %s\n\n", data)
+			flusher.Flush()
+		}
+
+		ctx := r.Context()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case msg, ok := <-ch:
+				if !ok {
+					return
+				}
+				w.Write(msg)
+				flusher.Flush()
+			}
+		}
+	})
+
 	mux.HandleFunc("GET /api/scans/{scanId}/export", func(w http.ResponseWriter, r *http.Request) {
 		scanID := r.PathValue("scanId")
 		format := service.ExportFormat(r.URL.Query().Get("format"))
@@ -260,7 +309,7 @@ func StartServer(addr string, mux *http.ServeMux, apiKey string, logger *slog.Lo
 		Addr:         addr,
 		Handler:      handler,
 		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		WriteTimeout: 0,
 		IdleTimeout:  30 * time.Second,
 	}
 

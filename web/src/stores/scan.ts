@@ -8,14 +8,17 @@ export const useScanStore = defineStore('scan', () => {
   const currentScan = ref<Scan | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const scansRevision = ref(0)
 
   const activeScan = computed(() => scans.value.find(s => s.status === 'RUNNING') ?? null)
 
   async function fetchScans() {
     loading.value = true
+    const requestRevision = scansRevision.value
     try {
       const data = await getScans()
-      scans.value = data
+      if (requestRevision !== scansRevision.value) return
+      setScans(data)
       if (currentScan.value && !data.find(s => s.id === currentScan.value!.id)) {
         currentScan.value = null
       }
@@ -26,16 +29,9 @@ export const useScanStore = defineStore('scan', () => {
     }
   }
 
-  async function fetchScansSilent() {
-    try {
-      const data = await getScans()
-      scans.value = data
-      if (currentScan.value && !data.find(s => s.id === currentScan.value!.id)) {
-        currentScan.value = null
-      }
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to fetch scans'
-    }
+  function setScans(data: Scan[]) {
+    scansRevision.value += 1
+    scans.value = data
   }
 
   async function createScan(config: ScanConfig) {
@@ -43,7 +39,6 @@ export const useScanStore = defineStore('scan', () => {
     error.value = null
     try {
       const scan = await startScan(config)
-      await fetchScans()
       currentScan.value = scan
       return scan
     } catch (e) {
@@ -88,7 +83,7 @@ export const useScanStore = defineStore('scan', () => {
     error,
     activeScan,
     fetchScans,
-    fetchScansSilent,
+    setScans,
     createScan,
     refreshStatus,
     selectScan,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { onMounted, onUnmounted, watch } from 'vue'
 import { useScanStore } from '../stores/scan'
 import { useGraphStore } from '../stores/graph'
 import { useUiStore } from '../stores/ui'
@@ -9,31 +9,34 @@ import ResourceDetail from './ResourceDetail.vue'
 import Legend from './Legend.vue'
 import SearchBar from './SearchBar.vue'
 import CloudConnection from './CloudConnection.vue'
+import { subscribeScans } from '../api/client'
 
 const scanStore = useScanStore()
 const graphStore = useGraphStore()
 const uiStore = useUiStore()
+let unsubscribeScans: (() => void) | null = null
 
 onMounted(async () => {
+  unsubscribeScans = subscribeScans((scans) => {
+    scanStore.setScans(scans)
+    if (scans.length === 0) {
+      scanStore.selectScan(null)
+      graphStore.clearGraph()
+    } else if (scanStore.currentScan && !scans.find(scan => scan.id === scanStore.currentScan?.id)) {
+      scanStore.selectScan(null)
+      graphStore.clearGraph()
+    }
+  })
+
   await scanStore.fetchScans()
-  const saved = localStorage.getItem('weavelens_scan_id')
-  if (!saved) return
+})
 
-  const savedScan = scanStore.scans.find(scan => scan.id === saved)
-  if (!savedScan) {
-    localStorage.removeItem('weavelens_scan_id')
-    scanStore.selectScan(null)
-    return
-  }
-
-  scanStore.selectScan(savedScan)
-  await graphStore.loadGraph(saved)
-  await scanStore.refreshStatus(saved)
+onUnmounted(() => {
+  unsubscribeScans?.()
 })
 
 watch(() => scanStore.currentScan?.id, async (scanId) => {
   if (scanId) {
-    localStorage.setItem('weavelens_scan_id', scanId)
     graphStore.clearGraph()
     await graphStore.loadGraph(scanId)
     await scanStore.refreshStatus(scanId)
