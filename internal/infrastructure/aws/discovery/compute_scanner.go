@@ -43,40 +43,40 @@ func (s *ComputeScanner) Scan(ctx context.Context) ([]*resource.Resource, error)
 					continue
 				}
 
-			name := *instance.InstanceId
-			tags := make(map[string]string)
-			for _, tag := range instance.Tags {
-				if tag.Key != nil && tag.Value != nil {
-					tags[*tag.Key] = *tag.Value
-					if *tag.Key == "Name" {
-						name = *tag.Value
+				name := *instance.InstanceId
+				tags := make(map[string]string)
+				for _, tag := range instance.Tags {
+					if tag.Key != nil && tag.Value != nil {
+						tags[*tag.Key] = *tag.Value
+						if *tag.Key == "Name" {
+							name = *tag.Value
+						}
 					}
 				}
-			}
 
-			metadata := map[string]string{
-				"instance_type": string(instance.InstanceType),
-				"image_id":      safePtr(instance.ImageId),
-			}
-			if instance.State != nil {
-				metadata["state"] = string(instance.State.Name)
-			}
-			if instance.VpcId != nil {
-				metadata["vpc_id"] = *instance.VpcId
-			}
-			if instance.SubnetId != nil {
-				metadata["subnet_id"] = *instance.SubnetId
-			}
+				metadata := map[string]string{
+					"instance_type": string(instance.InstanceType),
+					"image_id":      safePtr(instance.ImageId),
+				}
+				if instance.State != nil {
+					metadata["state"] = string(instance.State.Name)
+				}
+				if instance.VpcId != nil {
+					metadata["vpc_id"] = *instance.VpcId
+				}
+				if instance.SubnetId != nil {
+					metadata["subnet_id"] = *instance.SubnetId
+				}
 
-			res, err := resource.NewResource(
-				resource.ResourceID(*instance.InstanceId),
-				resource.ResourceType("EC2"),
-				resource.CategoryCompute,
-				name,
-				resource.WithMetadata(metadata),
-				resource.WithTags(tags),
-				resource.WithRegion(s.region),
-			)
+				res, err := resource.NewResource(
+					resource.ResourceID(*instance.InstanceId),
+					resource.ResourceType("EC2"),
+					resource.CategoryCompute,
+					name,
+					resource.WithMetadata(metadata),
+					resource.WithTags(tags),
+					resource.WithRegion(s.region),
+				)
 				if err != nil {
 					continue
 				}

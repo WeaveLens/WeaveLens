@@ -20,6 +20,17 @@ func buildRegionScanners(clients *client.Clients, region string) []Scanner {
 		NewComputeScanner(clients.EC2, region),
 		NewDatabaseScanner(clients.RDS, region),
 		NewLoadBalancerScanner(clients.ELBv2, region),
+		NewS3Scanner(clients.S3),
+		NewIAMScanner(clients.IAM, region),
+		NewLambdaScanner(clients.Lambda, region),
+		NewSQSScanner(clients.SQS, region),
+		NewSNSScanner(clients.SNS, region),
+		NewECRScanner(clients.ECR, region),
+		NewSecretsManagerScanner(clients.SecretsMgr, region),
+		NewDynamoDBScanner(clients.DynamoDB, region),
+		NewElasticacheScanner(clients.Elasticache, region),
+		NewCloudWatchLogsScanner(clients.CloudWatchLogs, region),
+		NewEventBridgeScanner(clients.EventBridge, region),
 	}
 }
 
