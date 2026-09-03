@@ -20,7 +20,7 @@ type graphService struct {
 	graphs    map[string]*graph.Graph
 	discovery discovery.ResourceDiscovery
 	onScanComplete func(scanID string, nodeCount, edgeCount int)
-	scanRegions map[string]string
+	scanRegions map[string][]string
 	history *ScanHistory
 }
 
@@ -30,7 +30,7 @@ func NewGraphService(eventBus *nats.EventBus, logger *slog.Logger, discovery dis
 		logger:    logger,
 		graphs:    make(map[string]*graph.Graph),
 		discovery: discovery,
-		scanRegions: make(map[string]string),
+		scanRegions: make(map[string][]string),
 	}
 }
 
@@ -41,14 +41,20 @@ func NewGraphServiceWithCallback(eventBus *nats.EventBus, logger *slog.Logger, d
 		graphs:    make(map[string]*graph.Graph),
 		discovery: discovery,
 		onScanComplete: onScanComplete,
-		scanRegions: make(map[string]string),
+		scanRegions: make(map[string][]string),
 	}
 }
 
-func (s *graphService) SetScanRegion(scanID, region string) {
+func (s *graphService) SetScanRegions(scanID string, regions []string) {
 	s.mu.Lock()
-	s.scanRegions[scanID] = region
-	s.mu.Unlock()
+	defer s.mu.Unlock()
+	if len(regions) == 0 {
+		delete(s.scanRegions, scanID)
+		return
+	}
+	cp := make([]string, len(regions))
+	copy(cp, regions)
+	s.scanRegions[scanID] = cp
 }
 
 func (s *graphService) SetHistory(h *ScanHistory) {
@@ -109,15 +115,21 @@ func (s *graphService) buildGraph(scanID string) (*graph.Graph, error) {
 		}
 	}
 
-	region := ""
+	regions := []string(nil)
 	if scanID != "" {
 		s.mu.RLock()
-		region = s.scanRegions[scanID]
+		regions = s.scanRegions[scanID]
 		s.mu.RUnlock()
 	}
 
 	ctx := context.Background()
-	result, err := s.discovery.Discover(ctx, discovery.DiscoveryRequest{Region: region})
+	var result *discovery.DiscoveryResult
+	var err error
+	if len(regions) > 0 {
+		result, err = s.discovery.Discover(ctx, discovery.DiscoveryRequest{Regions: regions})
+	} else {
+		result, err = s.discovery.Discover(ctx, discovery.DiscoveryRequest{Region: ""})
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover resources: %w", err)
 	}

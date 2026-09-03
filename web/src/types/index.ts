@@ -21,6 +21,7 @@ export interface Scan {
   id: string
   status: string
   region: string
+  regions?: string[]
   nodeCount: number
   edgeCount: number
   createdAt: string
@@ -28,7 +29,8 @@ export interface Scan {
 }
 
 export interface ScanConfig {
-  region: string
+  region?: string
+  regions?: string[]
 }
 
 export interface Graph {

@@ -27,8 +27,9 @@ type EventEnvelope struct {
 }
 
 type ScanStartedEvent struct {
-	ScanID string
-	Region string
+	ScanID  string
+	Region  string
+	Regions []string
 }
 
 type ScanCompletedEvent struct {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/elip/WeaveLens/internal/application/service"
@@ -12,13 +13,14 @@ import (
 )
 
 type ScanResponse struct {
-	ID        string `json:"id"`
-	Status    string `json:"status"`
-	Region    string `json:"region"`
-	NodeCount int    `json:"nodeCount"`
-	EdgeCount int    `json:"edgeCount"`
-	CreatedAt string `json:"createdAt"`
-	UpdatedAt string `json:"updatedAt"`
+	ID        string   `json:"id"`
+	Status    string   `json:"status"`
+	Region    string   `json:"region"`
+	Regions   []string `json:"regions,omitempty"`
+	NodeCount int      `json:"nodeCount"`
+	EdgeCount int      `json:"edgeCount"`
+	CreatedAt string   `json:"createdAt"`
+	UpdatedAt string   `json:"updatedAt"`
 }
 
 type GraphResponse struct {
@@ -69,6 +71,29 @@ func parseTime(t time.Time) string {
 	return t.UTC().Format(time.RFC3339)
 }
 
+func normalizeRegions(in []string) []string {
+	if len(in) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(in))
+	out := make([]string, 0, len(in))
+	for _, r := range in {
+		r = strings.TrimSpace(r)
+		if r == "" {
+			continue
+		}
+		if _, ok := seen[r]; ok {
+			continue
+		}
+		seen[r] = struct{}{}
+		out = append(out, r)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
 func NewRouter(discovery service.DiscoveryService, graph service.GraphService, connection ConnectionStatusGetter, export service.ExportService, regions *service.RegionService, logger *slog.Logger, notifiers ...<-chan struct{}) *http.ServeMux {
 	mux := http.NewServeMux()
 	broadcaster := NewScanBroadcaster()
@@ -107,13 +132,20 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 
 	mux.HandleFunc("POST /api/scans", func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			Region string `json:"region"`
+			Region  string   `json:"region"`
+			Regions []string `json:"regions"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "Invalid request body")
 			return
 		}
-		scanID, err := discovery.StartScan(r.Context(), req.Region)
+
+		regions := normalizeRegions(req.Regions)
+		if regions == nil && req.Region != "" {
+			regions = []string{req.Region}
+		}
+
+		scanID, err := discovery.StartScan(r.Context(), regions)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "Failed to start scan")
 			logger.Warn("scan_start_failed", "error", err, "request_id", security.GetRequestID(r.Context()))
@@ -122,16 +154,24 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 
 		status, _, _ := discovery.GetScanStatus(r.Context(), scanID)
 
+		displayRegion := "all"
+		if len(regions) == 1 {
+			displayRegion = regions[0]
+		} else if len(regions) > 1 {
+			displayRegion = strings.Join(regions, ",")
+		}
+
 		logger.Info("scan_started",
 			"scan_id", scanID,
-			"region", req.Region,
+			"regions", regions,
 			"request_id", security.GetRequestID(r.Context()),
 		)
 
 		writeJSON(w, http.StatusAccepted, ScanResponse{
 			ID:        scanID,
 			Status:    status,
-			Region:    req.Region,
+			Region:    displayRegion,
+			Regions:   regions,
 			CreatedAt: parseTime(time.Now().UTC()),
 			UpdatedAt: parseTime(time.Now().UTC()),
 		})
@@ -146,6 +186,7 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 		}
 
 		region := ""
+		regions := []string{}
 		nodeCount := 0
 		edgeCount := 0
 		createdAt := time.Now().UTC()
@@ -153,6 +194,7 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 		for _, scan := range discovery.GetScans() {
 			if scan.ID == scanID {
 				region = scan.Region
+				regions = scan.Regions
 				nodeCount = scan.NodeCount
 				edgeCount = scan.EdgeCount
 				if !scan.CreatedAt.IsZero() {
@@ -169,6 +211,7 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 			ID:        scanID,
 			Status:    status,
 			Region:    region,
+			Regions:   regions,
 			NodeCount: nodeCount,
 			EdgeCount: edgeCount,
 			CreatedAt: parseTime(createdAt),

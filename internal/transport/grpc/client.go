@@ -25,7 +25,12 @@ func (c *DiscoveryClient) StartScan(ctx context.Context, req *StartScanRequest) 
 		return nil, fmt.Errorf("invalid request: %w", err)
 	}
 
-	scanID, err := c.DiscoveryService.StartScan(propagateContext(ctx), req.Region)
+	regions := req.Regions
+	if len(regions) == 0 && req.Region != "" {
+		regions = []string{req.Region}
+	}
+
+	scanID, err := c.DiscoveryService.StartScan(propagateContext(ctx), regions)
 	if err != nil {
 		return nil, fmt.Errorf("failed to start scan: %w", err)
 	}

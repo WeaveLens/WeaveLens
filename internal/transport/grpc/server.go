@@ -14,6 +14,7 @@ type ScanRecord struct {
 	ID        string
 	Status    string
 	Region    string
+	Regions   []string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -36,16 +37,29 @@ func (s *DiscoveryServer) StartScan(ctx context.Context, req *StartScanRequest) 
 		return nil, err
 	}
 
-	scanID, err := s.DiscoveryService.StartScan(ctx, req.Region)
+	regions := req.Regions
+	if len(regions) == 0 && strings.TrimSpace(req.Region) != "" {
+		regions = []string{strings.TrimSpace(req.Region)}
+	}
+
+	scanID, err := s.DiscoveryService.StartScan(ctx, regions)
 	if err != nil {
 		return nil, mapGRPCError(err)
+	}
+
+	displayRegion := "all"
+	if len(regions) == 1 {
+		displayRegion = regions[0]
+	} else if len(regions) > 1 {
+		displayRegion = strings.Join(regions, ",")
 	}
 
 	s.mu.Lock()
 	s.scans[scanID] = &ScanRecord{
 		ID:        scanID,
 		Status:    "RUNNING",
-		Region:    req.Region,
+		Region:    displayRegion,
+		Regions:   regions,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}

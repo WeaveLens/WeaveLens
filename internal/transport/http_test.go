@@ -19,7 +19,7 @@ type fakeDiscoveryService struct {
 	service.DiscoveryService
 }
 
-func (f *fakeDiscoveryService) StartScan(ctx context.Context, region string) (string, error) {
+func (f *fakeDiscoveryService) StartScan(ctx context.Context, regions []string) (string, error) {
 	return "scan-123", nil
 }
 

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -40,6 +41,7 @@ type ScanRecord struct {
 	ID        string
 	Status    string
 	Region    string
+	Regions   []string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -53,30 +55,39 @@ func NewDiscoveryService(eventBus *nats.EventBus, logger *slog.Logger, discovery
 	}
 }
 
-func (s *discoveryService) StartScan(ctx context.Context, region string) (string, error) {
+func (s *discoveryService) StartScan(ctx context.Context, regions []string) (string, error) {
 	scanID := generateScanID()
+
+	displayRegion := "all"
+	if len(regions) == 1 {
+		displayRegion = regions[0]
+	} else if len(regions) > 1 {
+		displayRegion = strings.Join(regions, ",")
+	}
 
 	s.mu.Lock()
 	s.scans[scanID] = &ScanRecord{
 		ID:        scanID,
 		Status:    "RUNNING",
-		Region:    region,
+		Region:    displayRegion,
+		Regions:   regions,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
 	s.mu.Unlock()
 
 	if s.graphService != nil {
-		s.graphService.SetScanRegion(scanID, region)
+		s.graphService.SetScanRegions(scanID, regions)
 	}
 
 	if s.history != nil {
-		s.history.AddScan(scanID, region)
+		s.history.AddScan(scanID, displayRegion, regions)
 	}
 
 	evt := &event.ScanStartedEvent{
-		ScanID: scanID,
-		Region: region,
+		ScanID:  scanID,
+		Region:  displayRegion,
+		Regions: regions,
 	}
 
 	if err := s.eventBus.PublishScanStarted(ctx, evt); err != nil {
@@ -84,7 +95,7 @@ func (s *discoveryService) StartScan(ctx context.Context, region string) (string
 		return "", err
 	}
 
-	s.logger.Info("scan started", "scanID", scanID, "region", region)
+	s.logger.Info("scan started", "scanID", scanID, "regions", regions)
 	return scanID, nil
 }
 

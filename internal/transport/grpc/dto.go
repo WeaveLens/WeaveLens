@@ -30,7 +30,8 @@ type Scan struct {
 }
 
 type StartScanRequest struct {
-	Region string
+	Region  string
+	Regions []string
 }
 
 type StartScanResponse struct {

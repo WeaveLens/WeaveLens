@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -17,6 +18,7 @@ type ScanHistoryEntry struct {
 	ID        string    `json:"id"`
 	Status    string    `json:"status"`
 	Region    string    `json:"region"`
+	Regions   []string  `json:"regions,omitempty"`
 	NodeCount int       `json:"nodeCount"`
 	EdgeCount int       `json:"edgeCount"`
 	CreatedAt time.Time `json:"createdAt"`
@@ -109,15 +111,22 @@ func (h *ScanHistory) OnFileCreated() {
 	h.signalChange()
 }
 
-func (h *ScanHistory) AddScan(scanID, region string) {
+func (h *ScanHistory) AddScan(scanID, region string, regions []string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
 	now := time.Now().UTC()
+	displayRegion := region
+	if displayRegion == "" && len(regions) == 0 {
+		displayRegion = "all"
+	} else if len(regions) > 1 {
+		displayRegion = strings.Join(regions, ",")
+	}
 	entry := ScanHistoryEntry{
 		ID:        scanID,
 		Status:    "RUNNING",
-		Region:    region,
+		Region:    displayRegion,
+		Regions:   regions,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}

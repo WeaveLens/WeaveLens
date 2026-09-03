@@ -3,7 +3,7 @@ package service
 import "context"
 
 type DiscoveryService interface {
-	StartScan(ctx context.Context, region string) (string, error)
+	StartScan(ctx context.Context, regions []string) (string, error)
 	GetScanStatus(ctx context.Context, scanID string) (string, int, error)
 	CancelScan(ctx context.Context, scanID string) error
 	ListResources(ctx context.Context, scanID, category, resourceType string) ([]Resource, error)
@@ -18,7 +18,7 @@ type GraphService interface {
 	GetResource(ctx context.Context, resourceID string) (Resource, error)
 	GetNeighbors(ctx context.Context, resourceID string) ([]Resource, error)
 	GetRelationships(ctx context.Context, resourceID string) ([]Relationship, error)
-	SetScanRegion(scanID, region string)
+	SetScanRegions(scanID string, regions []string)
 	SetHistory(h *ScanHistory)
 }
 

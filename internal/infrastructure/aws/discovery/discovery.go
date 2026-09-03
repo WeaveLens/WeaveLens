@@ -11,7 +11,8 @@ import (
 )
 
 type DiscoveryRequest struct {
-	Region string
+	Region  string
+	Regions []string
 }
 
 type DiscoveryResult struct {
@@ -100,7 +101,7 @@ func (s *Service) Discover(ctx context.Context, request DiscoveryRequest) (*Disc
 		Errors:        make([]error, 0),
 	}
 
-	scanners, err := s.getScanners(ctx, request.Region)
+	scanners, err := s.getScanners(ctx, request)
 	if err != nil {
 		return result, err
 	}
@@ -135,13 +136,25 @@ func (s *Service) Discover(ctx context.Context, request DiscoveryRequest) (*Disc
 	return result, nil
 }
 
-func (s *Service) getScanners(ctx context.Context, region string) ([]Scanner, error) {
+func (s *Service) getScanners(ctx context.Context, request DiscoveryRequest) ([]Scanner, error) {
 	if s.factory == nil {
 		return s.scanners, nil
 	}
 
-	if region != "" {
-		return s.factory(region)
+	if request.Region != "" {
+		return s.factory(request.Region)
+	}
+
+	if len(request.Regions) > 0 {
+		var scanners []Scanner
+		for _, r := range request.Regions {
+			rs, err := s.factory(r)
+			if err != nil {
+				continue
+			}
+			scanners = append(scanners, rs...)
+		}
+		return scanners, nil
 	}
 
 	regions, err := availableRegions(ctx, s.awsConfig)
