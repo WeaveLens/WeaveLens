@@ -4,6 +4,22 @@ import type { Resource, Relationship } from '../types'
 import { getGraph, getResource, getRelationships } from '../api/client'
 import { useQuery } from '@tanstack/vue-query'
 
+export type LayoutMode = 'tiers' | 'concentric' | 'force' | 'none'
+
+export const CATEGORY_TIER_ORDER: Record<string, number> = {
+  network: 0,
+  security: 1,
+  compute: 2,
+  storage: 3,
+  database: 4,
+  integration: 5,
+  other: 6,
+}
+
+export function tierOf(category: string): number {
+  return CATEGORY_TIER_ORDER[category] ?? CATEGORY_TIER_ORDER.other
+}
+
 export const useGraphStore = defineStore('graph', () => {
   const nodes = ref<Resource[]>([])
   const edges = ref<Relationship[]>([])
@@ -16,6 +32,9 @@ export const useGraphStore = defineStore('graph', () => {
   const typeFilter = ref<string[]>([])
   const tagFilter = ref<string[]>([])
   const filterRules = ref<FilterRule[]>([])
+  const layoutMode = ref<LayoutMode>('tiers')
+  const layoutLocked = ref(false)
+  const pinnedPositions = ref<Record<string, { x: number; y: number }>>({})
 
   interface FilterRule {
     id: string
@@ -244,6 +263,23 @@ export const useGraphStore = defineStore('graph', () => {
     edges.value = []
     selectedResource.value = null
     error.value = null
+    pinnedPositions.value = {}
+  }
+
+  function setLayoutMode(mode: LayoutMode) {
+    layoutMode.value = mode
+    pinnedPositions.value = {}
+  }
+
+  function setLayoutLocked(locked: boolean) {
+    layoutLocked.value = locked
+    if (!locked) {
+      pinnedPositions.value = {}
+    }
+  }
+
+  function pinPosition(id: string, x: number, y: number) {
+    pinnedPositions.value = { ...pinnedPositions.value, [id]: { x, y } }
   }
 
   return {
@@ -258,6 +294,9 @@ export const useGraphStore = defineStore('graph', () => {
     typeFilter,
     tagFilter,
     filterRules,
+    layoutMode,
+    layoutLocked,
+    pinnedPositions,
     categories,
     regions,
     types,
@@ -283,6 +322,9 @@ export const useGraphStore = defineStore('graph', () => {
     clearFilterRules,
     clearSelection,
     clearGraph,
+    setLayoutMode,
+    setLayoutLocked,
+    pinPosition,
   }
 })
 

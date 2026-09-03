@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import cytoscape, { type Core, type EventObject } from 'cytoscape'
 import { useGraphStore } from '../stores/graph'
 import { getCategoryColor } from '../config/categories'
+import { tierOf, type LayoutMode } from '../stores/graph'
 
 const graphStore = useGraphStore()
 const containerRef = ref<HTMLDivElement | null>(null)
@@ -155,6 +156,7 @@ const elements = computed(() => {
       color: getCategoryColor(node.category),
       type: node.type,
       region: node.region,
+      tier: tierOf(node.category),
     },
   }))
   const edges = graphStore.filteredEdges.map(edge => ({
@@ -219,13 +221,7 @@ function initCy() {
         },
       },
     ],
-    layout: {
-      name: 'cose',
-      animate: false,
-      padding: 40,
-      nodeRepulsion: () => 8000,
-      idealEdgeLength: () => 120,
-    },
+    layout: buildLayoutConfig(graphStore.layoutMode) as cytoscape.LayoutOptions,
     minZoom: 0.1,
     maxZoom: 4,
     wheelSensitivity: 0.3,
@@ -245,6 +241,12 @@ function initCy() {
       graphStore.clearSelection()
     }
   })
+
+  cy.on('dragfree', 'node', (e: EventObject) => {
+    const node = e.target
+    const pos = node.position()
+    graphStore.pinPosition(node.id(), pos.x, pos.y)
+  })
 }
 
 function fitGraph() {
@@ -253,18 +255,88 @@ function fitGraph() {
   }
 }
 
-watch(elements, () => {
-  if (cy) {
-    cy.json({ elements: elements.value })
-    cy.layout({
-      name: 'cose',
-      animate: false,
-      padding: 40,
-      nodeRepulsion: () => 8000,
-      idealEdgeLength: () => 120,
-    }).run()
+function buildLayoutConfig(mode: LayoutMode) {
+  if (mode === 'none') {
+    return { name: 'preset', fit: true, padding: 40 }
   }
+  if (mode === 'tiers') {
+    return {
+      name: 'breadthfirst',
+      directed: false,
+      fit: true,
+      padding: 40,
+      spacingFactor: 1.4,
+      avoidOverlap: true,
+      transform: (_node: unknown, pos: { x: number; y: number }) => ({ x: pos.y, y: pos.x }),
+    }
+  }
+  if (mode === 'concentric') {
+    return {
+      name: 'concentric',
+      fit: true,
+      padding: 40,
+      minNodeSpacing: 40,
+      avoidOverlap: true,
+      concentric: (node: cytoscape.NodeSingular) => -tierOf(String(node.data('category'))),
+      levelWidth: () => 1,
+    }
+  }
+  return {
+    name: 'cose',
+    animate: false,
+    padding: 40,
+    nodeRepulsion: () => 8000,
+    idealEdgeLength: () => 120,
+    randomize: false,
+    fit: true,
+  }
+}
+
+function applyPinnedPositions() {
+  const instance = cy
+  if (!instance) return
+  const pins = graphStore.pinnedPositions
+  if (!pins || Object.keys(pins).length === 0) return
+  instance.batch(() => {
+    instance.nodes().forEach(n => {
+      const p = pins[n.id()]
+      if (p) {
+        n.position(p)
+        n.lock()
+      } else {
+        n.unlock()
+      }
+    })
+  })
+}
+
+function runLayout(mode: LayoutMode, opts: { lock: boolean } = { lock: false }) {
+  if (!cy) return
+  if (mode === 'none' || opts.lock) {
+    cy.layout({ name: 'preset', fit: true, padding: 40 }).run()
+  } else {
+    cy.layout(buildLayoutConfig(mode) as cytoscape.LayoutOptions).run()
+  }
+  if (opts.lock) applyPinnedPositions()
+}
+
+watch(elements, () => {
+  if (!cy) return
+  cy.json({ elements: elements.value })
+  if (graphStore.layoutLocked) {
+    applyPinnedPositions()
+    return
+  }
+  runLayout(graphStore.layoutMode, { lock: false })
 })
+
+watch(
+  () => [graphStore.layoutMode, graphStore.layoutLocked],
+  ([mode, locked]) => {
+    if (!cy) return
+    runLayout(mode as LayoutMode, { lock: locked as boolean })
+  }
+)
 
 let resizeObserver: ResizeObserver | null = null
 
@@ -296,12 +368,43 @@ defineExpose({ fitGraph })
 <template>
   <div class="topology-container">
     <div class="graph-controls">
-      <button @click="fitGraph" class="control-btn" title="Fit to screen">
-        Fit
-      </button>
-      <span class="node-count" v-if="graphStore.nodes.length">
-        {{ graphStore.nodes.length }} {{ (graphStore.nodes.length === 1 ? 'service' : 'services') }}
-      </span>
+      <div class="graph-controls-group">
+        <label class="layout-label" for="layout-mode-select">Layout</label>
+        <select
+          id="layout-mode-select"
+          class="control-select"
+          :value="graphStore.layoutMode"
+          @change="(e) => graphStore.setLayoutMode((e.target as HTMLSelectElement).value as LayoutMode)"
+        >
+          <option value="tiers">Tiers (by category)</option>
+          <option value="concentric">Concentric (by category)</option>
+          <option value="force">Force (cose)</option>
+          <option value="none">None (keep positions)</option>
+        </select>
+        <button
+          class="control-btn"
+          :class="{ active: graphStore.layoutLocked }"
+          :title="graphStore.layoutLocked ? 'Unlock layout (re-run auto layout on updates)' : 'Lock layout (keep positions on updates)'"
+          @click="graphStore.setLayoutLocked(!graphStore.layoutLocked)"
+        >
+          {{ graphStore.layoutLocked ? '🔒 Locked' : '🔓 Unlock' }}
+        </button>
+      </div>
+      <div class="graph-controls-group">
+        <button @click="fitGraph" class="control-btn" title="Fit to screen">
+          Fit
+        </button>
+        <button
+          class="control-btn"
+          title="Rerun current layout"
+          @click="runLayout(graphStore.layoutMode, { lock: graphStore.layoutLocked }); graphStore.setLayoutLocked(false)"
+        >
+          Relayout
+        </button>
+        <span class="node-count" v-if="graphStore.nodes.length">
+          {{ graphStore.nodes.length }} {{ (graphStore.nodes.length === 1 ? 'service' : 'services') }}
+        </span>
+      </div>
     </div>
     <div ref="containerRef" class="topology-view" />
     <div class="graph-overlay" v-if="graphStore.regions.length > 0 || graphStore.types.length > 0 || graphStore.availableTags.length > 0">
@@ -503,6 +606,41 @@ defineExpose({ fitGraph })
 
 .control-btn:hover {
   background: #e0e0e0;
+}
+
+.control-btn.active {
+  background: #1976d2;
+  color: white;
+  border-color: #1976d2;
+}
+
+.control-btn.active:hover {
+  background: #1565c0;
+}
+
+.graph-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.layout-label {
+  font-size: 11px;
+  color: #666;
+  font-weight: 600;
+}
+
+.control-select {
+  padding: 5px 8px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.control-select:hover {
+  border-color: #1976d2;
 }
 
 .node-count {
