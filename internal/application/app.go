@@ -109,7 +109,7 @@ func New(cfg *Config) *App {
 		clients := factory.BuildClients(awsCfg)
 		disc = discovery.NewServiceFromConfig(discovery.ServiceConfigInput{
 			Clients:   clients,
-			Region:    awsCfg.Region,
+			Region:    "",
 			AWSConfig: awsCfg,
 		})
 		ec2Client = ec2.NewFromConfig(awsCfg)

@@ -2,10 +2,9 @@ package discovery
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"sync"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/elip/WeaveLens/internal/domain/relationship"
 	"github.com/elip/WeaveLens/internal/domain/resource"
 	"github.com/elip/WeaveLens/internal/infrastructure/aws/discovery/resilience"
@@ -65,6 +64,8 @@ func DefaultServiceConfig() ServiceConfig {
 
 type Service struct {
 	scanners            []Scanner
+	awsConfig           aws.Config
+	factory             ScannerFactory
 	relationshipBuilder RelationshipBuilder
 	config              ServiceConfig
 }
@@ -81,6 +82,17 @@ func NewServiceWithConfig(scanners []Scanner, rb RelationshipBuilder, config Ser
 	}
 }
 
+func NewServiceDynamic(awsCfg aws.Config, factory ScannerFactory, rb RelationshipBuilder, config ServiceConfig) *Service {
+	return &Service{
+		awsConfig:           awsCfg,
+		factory:             factory,
+		relationshipBuilder: rb,
+		config:              config,
+	}
+}
+
+type ScannerFactory func(region string) ([]Scanner, error)
+
 func (s *Service) Discover(ctx context.Context, request DiscoveryRequest) (*DiscoveryResult, error) {
 	result := &DiscoveryResult{
 		Resources:     make([]*resource.Resource, 0),
@@ -88,14 +100,22 @@ func (s *Service) Discover(ctx context.Context, request DiscoveryRequest) (*Disc
 		Errors:        make([]error, 0),
 	}
 
-	resources, errs := s.scanConcurrently(ctx)
-	for _, res := range resources {
-		if request.Region == "" || res.Region() == request.Region {
-			result.AddResource(res)
-		}
+	scanners, err := s.getScanners(ctx, request.Region)
+	if err != nil {
+		return result, err
 	}
-	for _, err := range errs {
-		result.AddError(err)
+
+	allResources := make([]*resource.Resource, 0)
+	for _, scanner := range scanners {
+		resources, scanErr := scanner.Scan(ctx)
+		if scanErr != nil {
+			result.AddError(&ScannerError{Scanner: scanner.Name(), Err: scanErr})
+			continue
+		}
+		for _, res := range resources {
+			result.AddResource(res)
+			allResources = append(allResources, res)
+		}
 	}
 
 	if ctx.Err() != nil {
@@ -103,7 +123,7 @@ func (s *Service) Discover(ctx context.Context, request DiscoveryRequest) (*Disc
 		return result, ctx.Err()
 	}
 
-	relationships, err := s.relationshipBuilder.Build(result.Resources)
+	relationships, err := s.relationshipBuilder.Build(allResources)
 	if err != nil {
 		result.AddError(err)
 	} else {
@@ -115,119 +135,27 @@ func (s *Service) Discover(ctx context.Context, request DiscoveryRequest) (*Disc
 	return result, nil
 }
 
-func (s *Service) scanConcurrently(ctx context.Context) ([]*resource.Resource, []error) {
-	workers := s.config.Workers
-	if workers > len(s.scanners) {
-		workers = len(s.scanners)
+func (s *Service) getScanners(ctx context.Context, region string) ([]Scanner, error) {
+	if s.factory == nil {
+		return s.scanners, nil
 	}
 
-	resources := make([][]*resource.Resource, len(s.scanners))
-	scanErrors := make([]error, len(s.scanners))
-
-	var mu sync.Mutex
-	var wg sync.WaitGroup
-	sem := make(chan struct{}, workers)
-
-	cancelCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	for i, scanner := range s.scanners {
-		i, scanner := i, scanner
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
-			select {
-			case sem <- struct{}{}:
-				defer func() { <-sem }()
-			case <-cancelCtx.Done():
-				mu.Lock()
-				scanErrors[i] = fmt.Errorf("scanner %s: %w", scanner.Name(), cancelCtx.Err())
-				mu.Unlock()
-				return
-			}
-
-			if cancelCtx.Err() != nil {
-				mu.Lock()
-				scanErrors[i] = fmt.Errorf("scanner %s: %w", scanner.Name(), cancelCtx.Err())
-				mu.Unlock()
-				return
-			}
-
-			scanFunc := func() error {
-				res, err := scanner.Scan(cancelCtx)
-				if err != nil {
-					return err
-				}
-				mu.Lock()
-				resources[i] = res
-				mu.Unlock()
-				return nil
-			}
-
-			var err error
-			if s.config.RetryConfig.MaxAttempts > 0 {
-				isRetryable := func(err error) bool {
-					return isRetryableError(err)
-				}
-				err = resilience.Retry(cancelCtx, s.config.RetryConfig, isRetryable, scanFunc)
-			} else {
-				err = scanFunc()
-			}
-
-			if err != nil {
-				mu.Lock()
-				scanErrors[i] = &ScannerError{Scanner: scanner.Name(), Err: err}
-				mu.Unlock()
-			}
-		}()
+	if region != "" {
+		return s.factory(region)
 	}
 
-	wg.Wait()
-
-	if ctx.Err() != nil {
-		for i := range scanErrors {
-			if scanErrors[i] == nil {
-				scanErrors[i] = fmt.Errorf("scanner %s: %w", s.scanners[i].Name(), ctx.Err())
-			}
-		}
+	regions, err := availableRegions(ctx, s.awsConfig)
+	if err != nil || len(regions) == 0 {
+		regions = []string{"us-east-1"}
 	}
 
-	var allResources []*resource.Resource
-	var allErrors []error
-
-	for _, res := range resources {
-		if res != nil {
-			allResources = append(allResources, res...)
-		}
-	}
-	for _, err := range scanErrors {
+	var scanners []Scanner
+	for _, r := range regions {
+		rs, err := s.factory(r)
 		if err != nil {
-			allErrors = append(allErrors, err)
+			continue
 		}
+		scanners = append(scanners, rs...)
 	}
-
-	return allResources, allErrors
-}
-
-func isRetryableError(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	if errors.Is(err, ErrThrottling) {
-		return true
-	}
-	if errors.Is(err, ErrTransientFailure) {
-		return true
-	}
-	if errors.Is(err, ErrContextCanceled) {
-		return false
-	}
-	if errors.Is(err, ErrAccessDenied) {
-		return false
-	}
-
-	return false
+	return scanners, nil
 }

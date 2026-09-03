@@ -24,11 +24,12 @@ func buildRegionScanners(clients *client.Clients, region string) []Scanner {
 }
 
 func availableRegions(ctx context.Context, cfg aws.Config) ([]string, error) {
-	if cfg.Region == "" {
-		return nil, nil
+	describeCfg := cfg
+	if describeCfg.Region == "" {
+		describeCfg.Region = "us-east-1"
 	}
 
-	client := ec2.NewFromConfig(cfg)
+	client := ec2.NewFromConfig(describeCfg)
 	output, err := client.DescribeRegions(ctx, &ec2.DescribeRegionsInput{AllRegions: aws.Bool(true)})
 	if err != nil {
 		return nil, err
@@ -44,60 +45,16 @@ func availableRegions(ctx context.Context, cfg aws.Config) ([]string, error) {
 }
 
 func NewServiceFromConfig(cfg ServiceConfigInput) *Service {
-	strategyRegion := cfg.Region
-	if strategyRegion == "" {
-		regions, err := availableRegions(context.Background(), cfg.AWSConfig)
-		if err == nil && len(regions) > 0 {
-			var scanners []Scanner
-			for _, region := range regions {
-				regionalCfg := cfg.AWSConfig
-				regionalCfg.Region = region
-				regionalClients := client.NewFactory().BuildClients(regionalCfg)
-				scanners = append(scanners, buildRegionScanners(regionalClients, region)...)
-			}
-			return NewService(scanners, NewRelationshipBuilder())
-		}
-		strategyRegion = "us-east-1"
-	}
-
-	networkScanner := NewNetworkScanner(cfg.Clients.EC2, strategyRegion)
-	computeScanner := NewComputeScanner(cfg.Clients.EC2, strategyRegion)
-	databaseScanner := NewDatabaseScanner(cfg.Clients.RDS, strategyRegion)
-	loadBalancerScanner := NewLoadBalancerScanner(cfg.Clients.ELBv2, strategyRegion)
-	relationshipBuilder := NewRelationshipBuilder()
-
-	return NewService(
-		[]Scanner{networkScanner, computeScanner, databaseScanner, loadBalancerScanner},
-		relationshipBuilder,
-	)
+	return NewServiceFromConfigWithResilience(cfg, DefaultServiceConfig())
 }
 
 func NewServiceFromConfigWithResilience(cfg ServiceConfigInput, resilienceCfg ServiceConfig) *Service {
-	strategyRegion := cfg.Region
-	if strategyRegion == "" {
-		regions, err := availableRegions(context.Background(), cfg.AWSConfig)
-		if err == nil && len(regions) > 0 {
-			var scanners []Scanner
-			for _, region := range regions {
-				regionalCfg := cfg.AWSConfig
-				regionalCfg.Region = region
-				regionalClients := client.NewFactory().BuildClients(regionalCfg)
-				scanners = append(scanners, buildRegionScanners(regionalClients, region)...)
-			}
-			return NewServiceWithConfig(scanners, NewRelationshipBuilder(), resilienceCfg)
-		}
-		strategyRegion = "us-east-1"
+	factory := func(region string) ([]Scanner, error) {
+		regionalCfg := cfg.AWSConfig
+		regionalCfg.Region = region
+		regionalClients := client.NewFactory().BuildClients(regionalCfg)
+		return buildRegionScanners(regionalClients, region), nil
 	}
 
-	networkScanner := NewNetworkScanner(cfg.Clients.EC2, strategyRegion)
-	computeScanner := NewComputeScanner(cfg.Clients.EC2, strategyRegion)
-	databaseScanner := NewDatabaseScanner(cfg.Clients.RDS, strategyRegion)
-	loadBalancerScanner := NewLoadBalancerScanner(cfg.Clients.ELBv2, strategyRegion)
-	relationshipBuilder := NewRelationshipBuilder()
-
-	return NewServiceWithConfig(
-		[]Scanner{networkScanner, computeScanner, databaseScanner, loadBalancerScanner},
-		relationshipBuilder,
-		resilienceCfg,
-	)
+	return NewServiceDynamic(cfg.AWSConfig, factory, NewRelationshipBuilder(), resilienceCfg)
 }
