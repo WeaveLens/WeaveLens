@@ -1,0 +1,34 @@
+# Git
+.git
+.gitignore
+
+# Build artifacts and caches
+bin/
+.cache/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Node
+node_modules/
+web/node_modules/
+
+# Runtime scan-history data (bound at runtime, never baked into an image)
+scans/
+
+# Local tooling and env files
+.kilo/
+.lefthook-local/
+.env
+.env.local
+
+# Docs not needed in images
+/docs/
+
+# OS cruft
+.DS_Store
+Thumbs.db
