@@ -10,28 +10,47 @@ const selectedRegions = ref<string[]>([])
 const regions = ref<RegionInfo[]>([])
 const regionDropdownOpen = ref(false)
 const regionFilterRef = ref<HTMLElement | null>(null)
+const regionBtnRef = ref<HTMLElement | null>(null)
 
-function handleClickOutside(e: MouseEvent) {
+function isInsideDropdown(target: Node | null): boolean {
+  if (!target) return false
+  if (regionFilterRef.value && regionFilterRef.value.contains(target)) return true
+  if (regionBtnRef.value && regionBtnRef.value.contains(target)) return true
+  return false
+}
+
+function closeIfOutside(e: Event) {
   if (!regionDropdownOpen.value) return
   const target = e.target as Node | null
-  if (!target) return
-  if (regionFilterRef.value && !regionFilterRef.value.contains(target)) {
+  if (!isInsideDropdown(target)) {
+    regionDropdownOpen.value = false
+  }
+}
+
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && regionDropdownOpen.value) {
     regionDropdownOpen.value = false
   }
 }
 
 onMounted(async () => {
   try {
-  const fetched = await getRegions()
+    const fetched = await getRegions()
     regions.value = fetched
   } catch {
     // Use empty list if API fails
   }
-  document.addEventListener('mousedown', handleClickOutside, true)
+  document.addEventListener('mousedown', closeIfOutside, true)
+  document.addEventListener('touchstart', closeIfOutside, true)
+  document.addEventListener('focusin', closeIfOutside, true)
+  document.addEventListener('keydown', handleKeydown)
 })
 
 onUnmounted(() => {
-  document.removeEventListener('mousedown', handleClickOutside, true)
+  document.removeEventListener('mousedown', closeIfOutside, true)
+  document.removeEventListener('touchstart', closeIfOutside, true)
+  document.removeEventListener('focusin', closeIfOutside, true)
+  document.removeEventListener('keydown', handleKeydown)
 })
 
 function toggleRegion(value: string) {
@@ -116,11 +135,12 @@ const regionButtonLabel = computed(() => {
     </div>
 
     <form @submit.prevent="handleStartScan" class="scan-form">
+      <span class="label-text">Region</span>
       <div class="region-filter-group" ref="regionFilterRef">
-        <label class="label-text">Region</label>
         <button
           type="button"
           class="region-btn"
+          ref="regionBtnRef"
           @click="regionDropdownOpen = !regionDropdownOpen"
         >
           <span>{{ regionButtonLabel }}</span>
@@ -131,21 +151,26 @@ const regionButtonLabel = computed(() => {
             No regions available
           </div>
           <template v-else>
-            <label
-              v-for="r in regions"
-              :key="r.value"
-              class="region-option"
-            >
-              <input
-                type="checkbox"
-                :checked="selectedRegions.includes(r.value)"
-                @change="toggleRegion(r.value)"
-              />
-              <span>{{ r.label }}</span>
-            </label>
-            <div v-if="selectedRegions.length > 0" class="region-actions">
+            <div class="region-list">
+              <label
+                v-for="r in regions"
+                :key="r.value"
+                class="region-option"
+              >
+                <input
+                  type="checkbox"
+                  :checked="selectedRegions.includes(r.value)"
+                  @change="toggleRegion(r.value)"
+                />
+                <span>{{ r.label }}</span>
+              </label>
+            </div>
+            <div class="region-actions">
               <button type="button" class="clear-btn" @click="clearRegions">
-                Clear selection
+                Clear
+              </button>
+              <button type="button" class="ok-btn" @click="regionDropdownOpen = false">
+                OK
               </button>
             </div>
           </template>
@@ -302,14 +327,22 @@ const regionButtonLabel = computed(() => {
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  max-height: 240px;
-  overflow-y: auto;
+  max-height: 260px;
   background: white;
   border: 1px solid #ddd;
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 10;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.region-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
   padding: 4px 0;
+  min-height: 0;
 }
 
 .region-empty {
@@ -339,24 +372,43 @@ const regionButtonLabel = computed(() => {
 }
 
 .region-actions {
-  border-top: 1px solid #eee;
-  padding: 6px 8px;
+  flex: 0 0 auto;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px;
+  border-top: 1px solid #eee;
+  background: #fafafa;
+}
+
+.clear-btn,
+.ok-btn {
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-weight: 500;
 }
 
 .clear-btn {
   background: none;
-  border: none;
   color: #1976d2;
-  font-size: 12px;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
 }
 
 .clear-btn:hover {
   background: #e3f2fd;
+}
+
+.ok-btn {
+  background: #1976d2;
+  color: white;
+  margin-left: auto;
+}
+
+.ok-btn:hover {
+  background: #1565c0;
 }
 
 .region-hint {
