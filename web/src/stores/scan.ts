@@ -1,37 +1,9 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import type { Scan, ScanConfig } from '../types'
 import { startScan, getScanStatus, getScans, deleteScan, setScanPinned, clearUnpinnedScans } from '../api/client'
 
-const PIN_STORAGE_KEY = 'weavelens.pinnedScans'
-
-function loadPinnedIds(): Set<string> {
-  try {
-    const raw = localStorage.getItem(PIN_STORAGE_KEY)
-    if (!raw) return new Set()
-    const arr = JSON.parse(raw) as unknown
-    if (Array.isArray(arr)) {
-      return new Set(arr.filter((x): x is string => typeof x === 'string'))
-    }
-    return new Set()
-  } catch {
-    return new Set()
-  }
-}
-
-function savePinnedIds(ids: Set<string>) {
-  try {
-    localStorage.setItem(PIN_STORAGE_KEY, JSON.stringify([...ids]))
-  } catch {
-  }
-}
-
-function applyPins(scans: Scan[], pinnedIds: Set<string>): Scan[] {
-  return scans.map(s => ({ ...s, pinned: pinnedIds.has(s.id) }))
-}
-
 export const useScanStore = defineStore('scan', () => {
-  const pinnedIds = ref<Set<string>>(loadPinnedIds())
   const scans = ref<Scan[]>([])
   const currentScan = ref<Scan | null>(null)
   const loading = ref(false)
@@ -45,18 +17,13 @@ export const useScanStore = defineStore('scan', () => {
   const historyCount = computed(() => scans.value.length)
   const isHistoryFull = computed(() => scans.value.length >= maxHistoryCount)
 
-  watch(pinnedIds, (val) => {
-    savePinnedIds(val)
-    scans.value = scans.value.map(s => ({ ...s, pinned: val.has(s.id) }))
-  }, { deep: true })
-
   async function fetchScans() {
     loading.value = true
     const requestRevision = scansRevision.value
     try {
       const data = await getScans()
       if (requestRevision !== scansRevision.value) return
-      setScans(applyPins(data, pinnedIds.value))
+      setScans(data)
       if (currentScan.value && !data.find(s => s.id === currentScan.value!.id)) {
         currentScan.value = null
       }
@@ -90,7 +57,8 @@ export const useScanStore = defineStore('scan', () => {
   async function refreshStatus(scanId: string) {
     try {
       const scan = await getScanStatus(scanId)
-      const enriched: Scan = { ...scan, pinned: pinnedIds.value.has(scanId) }
+      const existing = scans.value.find(s => s.id === scanId)
+      const enriched: Scan = { ...scan, pinned: existing?.pinned ?? scan.pinned ?? false }
       const idx = scans.value.findIndex(s => s.id === scanId)
       if (idx >= 0) {
         scans.value[idx] = enriched
@@ -125,32 +93,29 @@ export const useScanStore = defineStore('scan', () => {
   }
 
   async function togglePin(scanId: string, pinned?: boolean) {
-    const current = pinned ?? !pinnedIds.value.has(scanId)
+    const scan = scans.value.find(s => s.id === scanId)
+    const target = pinned ?? !(scan?.pinned ?? false)
+    const prev = scan?.pinned ?? false
+    if (scan) {
+      scan.pinned = target
+    }
     try {
-      await setScanPinned(scanId, current)
+      await setScanPinned(scanId, target)
     } catch (e) {
+      if (scan) scan.pinned = prev
       error.value = e instanceof Error ? e.message : 'Failed to set pinned state'
       throw e
-    }
-    const next = new Set(pinnedIds.value)
-    if (current) {
-      next.add(scanId)
-    } else {
-      next.delete(scanId)
-    }
-    pinnedIds.value = next
-    const idx = scans.value.findIndex(s => s.id === scanId)
-    if (idx >= 0) {
-      scans.value[idx] = { ...scans.value[idx], pinned: current }
     }
   }
 
   async function clearUnpinned() {
     try {
       const removed = await clearUnpinnedScans()
-      const pinnedSet = pinnedIds.value
-      scans.value = scans.value.filter(s => pinnedSet.has(s.id))
-      if (currentScan.value && !pinnedSet.has(currentScan.value.id)) {
+      const kept = new Set(
+        scans.value.filter(s => s.pinned).map(s => s.id)
+      )
+      scans.value = scans.value.filter(s => s.pinned)
+      if (currentScan.value && !kept.has(currentScan.value.id)) {
         currentScan.value = null
       }
       return removed
