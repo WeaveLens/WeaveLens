@@ -3,10 +3,12 @@ package credential
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -18,20 +20,59 @@ type Provider interface {
 	Load(ctx context.Context, region string) (aws.Config, error)
 }
 
-type DefaultProvider struct{}
+type DefaultProvider struct {
+	mu      sync.RWMutex
+	profile string
+	logger  *slog.Logger
+}
+
+func NewDefaultProvider(logger *slog.Logger) *DefaultProvider {
+	return &DefaultProvider{logger: logger}
+}
+
+func (p *DefaultProvider) Profile() string {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.profile
+}
+
+func (p *DefaultProvider) setProfile(profile string) {
+	p.mu.Lock()
+	p.profile = profile
+	p.mu.Unlock()
+}
 
 func (p *DefaultProvider) Load(ctx context.Context, region string) (aws.Config, error) {
 	ensureHomeDir()
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" {
+		p.setProfile("environment")
+		return loadEnvironmentCredentials(region)
+	}
 
 	var opts []func(*config.LoadOptions) error
 	if region != "" {
 		opts = append(opts, config.WithRegion(region))
 	}
-	if profile := os.Getenv("AWS_PROFILE"); profile != "" {
-		opts = append(opts, config.WithSharedConfigProfile(profile))
+
+	profile := os.Getenv("AWS_PROFILE")
+	explicitProfile := profile != ""
+	if !explicitProfile {
+		profile = "weavelens"
 	}
+	opts = append(opts, config.WithSharedConfigProfile(profile))
 
 	cfg, err := config.LoadDefaultConfig(ctx, opts...)
+	if err != nil && !explicitProfile {
+		logger := p.logger
+		if logger == nil {
+			logger = slog.Default()
+		}
+		logger.Warn("failed to load profile `weavelens`, trying AWS default profile", "profile", profile, "error", err)
+		cfg, err = config.LoadDefaultConfig(ctx, regionOptions(region)...)
+		if err == nil {
+			profile = "default"
+		}
+	}
 	if err != nil {
 		return aws.Config{}, fmt.Errorf("failed to load AWS default config: %w", err)
 	}
@@ -50,7 +91,41 @@ func (p *DefaultProvider) Load(ctx context.Context, region string) (aws.Config, 
 		return aws.Config{}, fmt.Errorf("AWS region is not set")
 	}
 
+	if endpoint := os.Getenv("AWS_ENDPOINT_URL"); endpoint != "" {
+		cfg.BaseEndpoint = &endpoint
+	}
+	p.setProfile(profile)
+
 	return cfg, nil
+}
+
+func loadEnvironmentCredentials(region string) (aws.Config, error) {
+	if region == "" {
+		region = regionFromEnv()
+	}
+	if region == "" {
+		return aws.Config{}, fmt.Errorf("AWS region is not set")
+	}
+
+	cfg := aws.Config{
+		Region: region,
+		Credentials: aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(
+			os.Getenv("AWS_ACCESS_KEY_ID"),
+			os.Getenv("AWS_SECRET_ACCESS_KEY"),
+			os.Getenv("AWS_SESSION_TOKEN"),
+		)),
+	}
+	if endpoint := os.Getenv("AWS_ENDPOINT_URL"); endpoint != "" {
+		cfg.BaseEndpoint = &endpoint
+	}
+	return cfg, nil
+}
+
+func regionOptions(region string) []func(*config.LoadOptions) error {
+	if region == "" {
+		return nil
+	}
+	return []func(*config.LoadOptions) error{config.WithRegion(region)}
 }
 
 // ensureHomeDir ensures that the HOME, USERPROFILE, and AWS config file
@@ -107,6 +182,13 @@ type AssumeRoleConfig struct {
 type AssumeRoleProvider struct {
 	base   Provider
 	config AssumeRoleConfig
+}
+
+func (p *AssumeRoleProvider) Profile() string {
+	if profileProvider, ok := p.base.(interface{ Profile() string }); ok {
+		return profileProvider.Profile()
+	}
+	return ""
 }
 
 func NewAssumeRoleProvider(base Provider, cfg AssumeRoleConfig) *AssumeRoleProvider {

@@ -57,9 +57,13 @@ func TestDefaultProviderLoadRegionOverride(t *testing.T) {
 }
 
 func TestDefaultProviderLoadMissingRegion(t *testing.T) {
-	os.Unsetenv("AWS_REGION")
-	os.Unsetenv("AWS_DEFAULT_REGION")
-	os.Unsetenv("AWS_ACCESS_KEY_ID")
+	t.Setenv("AWS_REGION", "")
+	t.Setenv("AWS_DEFAULT_REGION", "")
+	t.Setenv("AWS_PROFILE", "")
+	t.Setenv("AWS_CONFIG_FILE", filepath.Join(t.TempDir(), "config"))
+	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", filepath.Join(t.TempDir(), "credentials"))
+	t.Setenv("AWS_ACCESS_KEY_ID", "")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "")
 
 	provider := &DefaultProvider{}
 	_, err := provider.Load(context.Background(), "")
@@ -306,6 +310,62 @@ func TestDefaultProviderLoadWithSharedConfigProfile(t *testing.T) {
 	}
 	if creds.SecretAccessKey != "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" {
 		t.Errorf("SecretAccessKey = %v, want wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", creds.SecretAccessKey)
+	}
+}
+
+func TestDefaultProviderFallsBackToDefaultProfile(t *testing.T) {
+	tmpDir := t.TempDir()
+	awsDir := filepath.Join(tmpDir, ".aws")
+	if err := os.Mkdir(awsDir, 0700); err != nil {
+		t.Fatalf("failed to create .aws dir: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(awsDir, "credentials"), []byte("[default]\naws_access_key_id = DEFAULTKEY\naws_secret_access_key = defaultsecret\n"), 0600); err != nil {
+		t.Fatalf("failed to write credentials file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(awsDir, "config"), []byte("[default]\nregion = us-east-2\n"), 0600); err != nil {
+		t.Fatalf("failed to write config file: %v", err)
+	}
+
+	t.Setenv("HOME", tmpDir)
+	t.Setenv("AWS_PROFILE", "")
+	t.Setenv("AWS_ACCESS_KEY_ID", "")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "")
+	t.Setenv("AWS_CONFIG_FILE", filepath.Join(awsDir, "config"))
+	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", filepath.Join(awsDir, "credentials"))
+
+	cfg, err := (&DefaultProvider{}).Load(context.Background(), "")
+	if err != nil {
+		t.Fatalf("DefaultProvider.Load() error = %v", err)
+	}
+	if cfg.Region != "us-east-2" {
+		t.Errorf("Region = %v, want us-east-2", cfg.Region)
+	}
+	creds, err := cfg.Credentials.Retrieve(context.Background())
+	if err != nil {
+		t.Fatalf("failed to retrieve credentials: %v", err)
+	}
+	if creds.AccessKeyID != "DEFAULTKEY" {
+		t.Errorf("AccessKeyID = %v, want DEFAULTKEY", creds.AccessKeyID)
+	}
+}
+
+func TestDefaultProviderPrefersEnvironmentCredentials(t *testing.T) {
+	t.Setenv("AWS_PROFILE", "missing-profile")
+	t.Setenv("AWS_ACCESS_KEY_ID", "ENVKEY")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "envsecret")
+	t.Setenv("AWS_REGION", "us-west-1")
+
+	cfg, err := (&DefaultProvider{}).Load(context.Background(), "")
+	if err != nil {
+		t.Fatalf("DefaultProvider.Load() error = %v", err)
+	}
+	creds, err := cfg.Credentials.Retrieve(context.Background())
+	if err != nil {
+		t.Fatalf("failed to retrieve credentials: %v", err)
+	}
+	if creds.AccessKeyID != "ENVKEY" {
+		t.Errorf("AccessKeyID = %v, want ENVKEY", creds.AccessKeyID)
 	}
 }
 

@@ -61,7 +61,14 @@ nats-server -js
 
 ### 2. Configure AWS Credentials
 
-Option A - Using AWS Profile:
+Credential resolution order (highest priority first):
+
+1. **Environment variables** (`AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`)
+2. **AWS_PROFILE** env var → uses that named profile
+3. **Default profile** → uses `weavelens` profile from `~/.aws/credentials`
+4. **IAM Role** (EC2/ECS instance role, no config needed)
+
+Option A - AWS Profile `weavelens` (default):
 
 ```bash
 # ~/.aws/credentials
@@ -71,41 +78,44 @@ aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 ```
 
 ```bash
-# From project root (WeaveLens/)
-AWS_PROFILE=weavelens AWS_REGION=us-east-1 go run ./cmd/weavelens
+# ~/.aws/config
+[profile weavelens]
+region = us-east-1
 ```
 
-Or export variables first:
+```bash
+# From project root (WeaveLens/)
+go run ./cmd/weavelens
+```
+
+The app uses the `weavelens` profile by default. If it doesn't exist, it falls back to `default`.
+
+Option B - Custom profile via env:
 
 ```bash
-export AWS_PROFILE=weavelens
+export AWS_PROFILE=my-profile
 export AWS_REGION=us-east-1
 go run ./cmd/weavelens
 ```
 
-Option B - Using environment variables:
+Option C - Environment variables (no profile):
 
 ```bash
-# From project root (WeaveLens/)
 export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
 export AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 export AWS_REGION=us-east-1
 go run ./cmd/weavelens
 ```
 
-Or inline:
+When `AWS_ACCESS_KEY_ID` is set, the app uses environment credentials and ignores the profile setting.
 
-```bash
-AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1 go run ./cmd/weavelens
-```
-
-Option C - Using LocalStack (local AWS emulator):
+Option D - LocalStack (local AWS emulator):
 
 ```bash
 # Start LocalStack
 docker run -d --name localstack -p 4566:4566 localstack/localstack
 
-# Configure and run
+# Configure dummy credentials + endpoint
 export AWS_ENDPOINT_URL=http://localhost:4566
 export AWS_ACCESS_KEY_ID=test
 export AWS_SECRET_ACCESS_KEY=test
@@ -113,19 +123,17 @@ export AWS_REGION=us-east-1
 go run ./cmd/weavelens
 ```
 
-Option C - Using IAM Role (EC2/ECS):
+Option E - IAM Role (EC2/ECS):
 
 ```bash
-# From project root (WeaveLens/)
 # No credentials needed - uses instance role
 export AWS_REGION=us-east-1
 go run ./cmd/weavelens
 ```
 
-Option D - Using STS Assume Role:
+Option F - STS Assume Role:
 
 ```bash
-# From project root (WeaveLens/)
 export AWS_REGION=us-east-1
 export AWS_ROLE_ARN=arn:aws:iam::123456789012:role/WeaveLensRole
 go run ./cmd/weavelens
@@ -156,6 +164,10 @@ npm run dev
 | `LOG_LEVEL` | `info` | Log level (debug, info, warn, error) |
 | `NATS_URL` | `nats://localhost:4222` | NATS server URL |
 | `AWS_REGION` | - | AWS region |
+| `AWS_PROFILE` | `weavelens` | AWS profile name from `~/.aws/credentials` |
+| `AWS_ACCESS_KEY_ID` | - | Override with env credentials (bypasses profile) |
+| `AWS_SECRET_ACCESS_KEY` | - | Override with env credentials (bypasses profile) |
+| `AWS_ENDPOINT_URL` | - | Custom endpoint (e.g., LocalStack) |
 | `AWS_ROLE_ARN` | - | Optional IAM role ARN for AssumeRole |
 | `AWS_ROLE_SESSION_NAME` | `weavelens-session` | Session name for assumed role |
 | `AWS_EXTERNAL_ID` | - | External ID for role assumption |

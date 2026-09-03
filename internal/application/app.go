@@ -70,7 +70,7 @@ func New(cfg *Config) *App {
 	subscriber := nats.NewJetStreamSubscriber(natsClient)
 	eventBus := nats.NewEventBus(publisher, subscriber)
 
-	provider := credential.Provider(&credential.DefaultProvider{})
+	provider := credential.Provider(credential.NewDefaultProvider(logger))
 	credentialSource := "default"
 	if cfg.AWSRoleARN != "" {
 		provider = credential.NewAssumeRoleProvider(provider, credential.AssumeRoleConfig{
@@ -84,35 +84,36 @@ func New(cfg *Config) *App {
 	var disc discovery.ResourceDiscovery
 	var identity *credential.Identity
 	var ec2Client *ec2.Client
-	if cfg.AWSRegion != "" || os.Getenv("AWS_PROFILE") != "" || os.Getenv("AWS_DEFAULT_PROFILE") != "" {
-		awsCfg, err := provider.Load(context.Background(), cfg.AWSRegion)
-		if err != nil {
-			logger.Error("failed to load AWS config", "error", err)
-			logger.Warn("continuing without AWS connection - set AWS_REGION and credentials to enable")
-		} else {
-			identity, err = credential.VerifyIdentity(context.Background(), awsCfg)
-			if err != nil {
-				logger.Error("failed to verify AWS identity", "error", err)
-				logger.Warn("continuing without AWS connection - check credentials")
-			} else {
-				logger.Info("AWS identity verified",
-					"accountID", identity.AccountID,
-					"arn", identity.ARN,
-					"userID", identity.UserID,
-					"credential_source", credentialSource,
-				)
-			}
-
-			factory := awsclient.NewFactory()
-			clients := factory.BuildClients(awsCfg)
-			disc = discovery.NewServiceFromConfig(discovery.ServiceConfigInput{
-				Clients:   clients,
-				Region:    awsCfg.Region,
-				AWSConfig: awsCfg,
-			})
-			ec2Client = ec2.NewFromConfig(awsCfg)
-			cfg.AWSRegion = awsCfg.Region
+	awsCfg, err := provider.Load(context.Background(), cfg.AWSRegion)
+	if err != nil {
+		logger.Error("failed to load AWS config", "error", err)
+		logger.Warn("continuing without AWS connection - configure an AWS profile or set AWS_REGION and credentials to enable")
+	} else {
+		if profileProvider, ok := provider.(interface{ Profile() string }); ok {
+			logger.Info("AWS credentials loaded", "profile", profileProvider.Profile())
 		}
+		identity, err = credential.VerifyIdentity(context.Background(), awsCfg)
+		if err != nil {
+			logger.Error("failed to verify AWS identity", "error", err)
+			logger.Warn("continuing without AWS connection - check credentials")
+		} else {
+			logger.Info("AWS identity verified",
+				"accountID", identity.AccountID,
+				"arn", identity.ARN,
+				"userID", identity.UserID,
+				"credential_source", credentialSource,
+			)
+		}
+
+		factory := awsclient.NewFactory()
+		clients := factory.BuildClients(awsCfg)
+		disc = discovery.NewServiceFromConfig(discovery.ServiceConfigInput{
+			Clients:   clients,
+			Region:    awsCfg.Region,
+			AWSConfig: awsCfg,
+		})
+		ec2Client = ec2.NewFromConfig(awsCfg)
+		cfg.AWSRegion = awsCfg.Region
 	}
 
 	return &App{
