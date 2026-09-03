@@ -84,7 +84,7 @@ func New(cfg *Config) *App {
 	var disc discovery.ResourceDiscovery
 	var identity *credential.Identity
 	var ec2Client *ec2.Client
-	if cfg.AWSRegion != "" {
+	if cfg.AWSRegion != "" || os.Getenv("AWS_PROFILE") != "" || os.Getenv("AWS_DEFAULT_PROFILE") != "" {
 		awsCfg, err := provider.Load(context.Background(), cfg.AWSRegion)
 		if err != nil {
 			logger.Error("failed to load AWS config", "error", err)
@@ -107,10 +107,11 @@ func New(cfg *Config) *App {
 			clients := factory.BuildClients(awsCfg)
 			disc = discovery.NewServiceFromConfig(discovery.ServiceConfigInput{
 				Clients:   clients,
-				Region:    cfg.AWSRegion,
+				Region:    awsCfg.Region,
 				AWSConfig: awsCfg,
 			})
 			ec2Client = ec2.NewFromConfig(awsCfg)
+			cfg.AWSRegion = awsCfg.Region
 		}
 	}
 

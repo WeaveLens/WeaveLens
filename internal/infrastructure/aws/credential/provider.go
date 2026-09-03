@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/user"
+	"path/filepath"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -19,7 +21,17 @@ type Provider interface {
 type DefaultProvider struct{}
 
 func (p *DefaultProvider) Load(ctx context.Context, region string) (aws.Config, error) {
-	cfg, err := config.LoadDefaultConfig(ctx)
+	ensureHomeDir()
+
+	var opts []func(*config.LoadOptions) error
+	if region != "" {
+		opts = append(opts, config.WithRegion(region))
+	}
+	if profile := os.Getenv("AWS_PROFILE"); profile != "" {
+		opts = append(opts, config.WithSharedConfigProfile(profile))
+	}
+
+	cfg, err := config.LoadDefaultConfig(ctx, opts...)
 	if err != nil {
 		return aws.Config{}, fmt.Errorf("failed to load AWS default config: %w", err)
 	}
@@ -41,10 +53,55 @@ func (p *DefaultProvider) Load(ctx context.Context, region string) (aws.Config, 
 	return cfg, nil
 }
 
+// ensureHomeDir ensures that the HOME, USERPROFILE, and AWS config file
+// path environment variables are set so that the AWS SDK can resolve
+// user-level configuration files such as ~/.aws/credentials and
+// ~/.aws/config.
+//
+// This is primarily needed on Windows where HOME is not set by default —
+// only USERPROFILE is. The AWS SDK v2 uses os.UserHomeDir() which checks
+// USERPROFILE, but the SDK's DefaultSharedConfigFiles variable is evaluated
+// at package init time. If USERPROFILE is unset in certain execution contexts
+// (e.g. scheduled tasks, services), the resolved paths will be wrong.
+// This function resolves the home directory from HOME → USERPROFILE →
+// user.Current() and sets all variables explicitly.
+func ensureHomeDir() {
+	home := os.Getenv("HOME")
+	homeWasSet := home != ""
+
+	if !homeWasSet {
+		home = os.Getenv("USERPROFILE")
+	}
+	if home == "" {
+		if u, err := user.Current(); err == nil {
+			home = u.HomeDir
+		}
+	}
+
+	if home == "" {
+		return
+	}
+
+	os.Setenv("HOME", home)
+	if os.Getenv("USERPROFILE") == "" {
+		os.Setenv("USERPROFILE", home)
+	}
+
+	if !homeWasSet {
+		awsDir := filepath.Join(home, ".aws")
+		if os.Getenv("AWS_CONFIG_FILE") == "" {
+			os.Setenv("AWS_CONFIG_FILE", filepath.Join(awsDir, "config"))
+		}
+		if os.Getenv("AWS_SHARED_CREDENTIALS_FILE") == "" {
+			os.Setenv("AWS_SHARED_CREDENTIALS_FILE", filepath.Join(awsDir, "credentials"))
+		}
+	}
+}
+
 type AssumeRoleConfig struct {
-	RoleARN      string
-	SessionName  string
-	ExternalID   string
+	RoleARN     string
+	SessionName string
+	ExternalID  string
 }
 
 type AssumeRoleProvider struct {

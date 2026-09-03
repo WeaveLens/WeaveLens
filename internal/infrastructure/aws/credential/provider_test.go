@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -225,6 +226,194 @@ func TestVerifyIdentity(t *testing.T) {
 	}
 	if identity.UserID != "AKIAIOSFODNN7EXAMPLE" {
 		t.Errorf("VerifyIdentity() UserID = %v, want AKIAIOSFODNN7EXAMPLE", identity.UserID)
+	}
+}
+
+func TestDefaultProviderLoadWithSharedConfigProfile(t *testing.T) {
+	tmpDir := t.TempDir()
+	awsDir := filepath.Join(tmpDir, ".aws")
+	if err := os.Mkdir(awsDir, 0700); err != nil {
+		t.Fatalf("failed to create .aws dir: %v", err)
+	}
+
+	credsFile := filepath.Join(awsDir, "credentials")
+	credsContent := "[test-profile]\n" +
+		"aws_access_key_id = AKIAIOSFODNN7EXAMPLE\n" +
+		"aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\n"
+	if err := os.WriteFile(credsFile, []byte(credsContent), 0600); err != nil {
+		t.Fatalf("failed to write credentials file: %v", err)
+	}
+
+	configFile := filepath.Join(awsDir, "config")
+	configContent := "[profile test-profile]\n" +
+		"region = us-east-1\n"
+	if err := os.WriteFile(configFile, []byte(configContent), 0600); err != nil {
+		t.Fatalf("failed to write config file: %v", err)
+	}
+
+	envVarsToRestore := []string{
+		"HOME", "USERPROFILE",
+		"AWS_PROFILE", "AWS_DEFAULT_PROFILE",
+		"AWS_ACCESS_KEY_ID", "AWS_ACCESS_KEY",
+		"AWS_SECRET_ACCESS_KEY", "AWS_SECRET_KEY",
+		"AWS_SESSION_TOKEN",
+		"AWS_REGION", "AWS_DEFAULT_REGION",
+		"AWS_CONFIG_FILE", "AWS_SHARED_CREDENTIALS_FILE",
+	}
+	savedValues := make(map[string]string, len(envVarsToRestore))
+	savedExists := make(map[string]bool, len(envVarsToRestore))
+	for _, key := range envVarsToRestore {
+		savedValues[key], savedExists[key] = os.LookupEnv(key)
+	}
+	t.Cleanup(func() {
+		for _, key := range envVarsToRestore {
+			if savedExists[key] {
+				os.Setenv(key, savedValues[key])
+			} else {
+				os.Unsetenv(key)
+			}
+		}
+	})
+
+	os.Setenv("HOME", tmpDir)
+	os.Unsetenv("USERPROFILE")
+	os.Unsetenv("AWS_ACCESS_KEY_ID")
+	os.Unsetenv("AWS_ACCESS_KEY")
+	os.Unsetenv("AWS_SECRET_ACCESS_KEY")
+	os.Unsetenv("AWS_SECRET_KEY")
+	os.Unsetenv("AWS_SESSION_TOKEN")
+	os.Setenv("AWS_PROFILE", "test-profile")
+	os.Setenv("AWS_CONFIG_FILE", configFile)
+	os.Setenv("AWS_SHARED_CREDENTIALS_FILE", credsFile)
+
+	provider := &DefaultProvider{}
+	cfg, err := provider.Load(context.Background(), "")
+	if err != nil {
+		t.Fatalf("DefaultProvider.Load() error = %v", err)
+	}
+
+	if cfg.Region != "us-east-1" {
+		t.Errorf("DefaultProvider.Load() Region = %v, want us-east-1", cfg.Region)
+	}
+
+	creds, err := cfg.Credentials.Retrieve(context.Background())
+	if err != nil {
+		t.Fatalf("failed to retrieve credentials: %v", err)
+	}
+
+	if creds.AccessKeyID != "AKIAIOSFODNN7EXAMPLE" {
+		t.Errorf("AccessKeyID = %v, want AKIAIOSFODNN7EXAMPLE", creds.AccessKeyID)
+	}
+	if creds.SecretAccessKey != "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" {
+		t.Errorf("SecretAccessKey = %v, want wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", creds.SecretAccessKey)
+	}
+}
+
+func TestEnsureHomeDir(t *testing.T) {
+	originalHome, homeExisted := os.LookupEnv("HOME")
+	originalUserProfile, userProfileExisted := os.LookupEnv("USERPROFILE")
+	originalConfigFile, configExisted := os.LookupEnv("AWS_CONFIG_FILE")
+	originalCredsFile, credsExisted := os.LookupEnv("AWS_SHARED_CREDENTIALS_FILE")
+
+	t.Cleanup(func() {
+		if homeExisted {
+			os.Setenv("HOME", originalHome)
+		} else {
+			os.Unsetenv("HOME")
+		}
+		if userProfileExisted {
+			os.Setenv("USERPROFILE", originalUserProfile)
+		} else {
+			os.Unsetenv("USERPROFILE")
+		}
+		if configExisted {
+			os.Setenv("AWS_CONFIG_FILE", originalConfigFile)
+		} else {
+			os.Unsetenv("AWS_CONFIG_FILE")
+		}
+		if credsExisted {
+			os.Setenv("AWS_SHARED_CREDENTIALS_FILE", originalCredsFile)
+		} else {
+			os.Unsetenv("AWS_SHARED_CREDENTIALS_FILE")
+		}
+	})
+
+	home := os.Getenv("HOME")
+
+	os.Unsetenv("HOME")
+	os.Unsetenv("USERPROFILE")
+	os.Unsetenv("AWS_CONFIG_FILE")
+	os.Unsetenv("AWS_SHARED_CREDENTIALS_FILE")
+
+	ensureHomeDir()
+
+	if home != "" {
+		if got := os.Getenv("HOME"); got != home {
+			t.Errorf("HOME = %q, want %q", got, home)
+		}
+	} else {
+		t.Errorf("HOME should have been resolved to a non-empty value")
+	}
+
+	if got := os.Getenv("USERPROFILE"); got == "" {
+		t.Errorf("USERPROFILE should have been set")
+	}
+
+	if got := os.Getenv("AWS_CONFIG_FILE"); got == "" {
+		t.Errorf("AWS_CONFIG_FILE should have been set")
+	}
+	if got := os.Getenv("AWS_SHARED_CREDENTIALS_FILE"); got == "" {
+		t.Errorf("AWS_SHARED_CREDENTIALS_FILE should have been set")
+	}
+}
+
+func TestEnsureHomeDirPreservesExistingHome(t *testing.T) {
+	originalHome, homeExisted := os.LookupEnv("HOME")
+	originalUserProfile, userProfileExisted := os.LookupEnv("USERPROFILE")
+	originalConfigFile, configExisted := os.LookupEnv("AWS_CONFIG_FILE")
+	originalCredsFile, credsExisted := os.LookupEnv("AWS_SHARED_CREDENTIALS_FILE")
+
+	t.Cleanup(func() {
+		if homeExisted {
+			os.Setenv("HOME", originalHome)
+		} else {
+			os.Unsetenv("HOME")
+		}
+		if userProfileExisted {
+			os.Setenv("USERPROFILE", originalUserProfile)
+		} else {
+			os.Unsetenv("USERPROFILE")
+		}
+		if configExisted {
+			os.Setenv("AWS_CONFIG_FILE", originalConfigFile)
+		} else {
+			os.Unsetenv("AWS_CONFIG_FILE")
+		}
+		if credsExisted {
+			os.Setenv("AWS_SHARED_CREDENTIALS_FILE", originalCredsFile)
+		} else {
+			os.Unsetenv("AWS_SHARED_CREDENTIALS_FILE")
+		}
+	})
+
+	tmpDir := t.TempDir()
+	originalHome = tmpDir
+	os.Setenv("HOME", tmpDir)
+	os.Unsetenv("USERPROFILE")
+	os.Unsetenv("AWS_CONFIG_FILE")
+	os.Unsetenv("AWS_SHARED_CREDENTIALS_FILE")
+
+	ensureHomeDir()
+
+	if got := os.Getenv("HOME"); got != tmpDir {
+		t.Errorf("HOME should be preserved, got %q, want %q", got, tmpDir)
+	}
+
+	if got := os.Getenv("AWS_CONFIG_FILE"); got != "" {
+		t.Errorf("AWS_CONFIG_FILE should not be set when HOME was already set, got %q", got)
+	}
+	if got := os.Getenv("AWS_SHARED_CREDENTIALS_FILE"); got != "" {
+		t.Errorf("AWS_SHARED_CREDENTIALS_FILE should not be set when HOME was already set, got %q", got)
 	}
 }
 
