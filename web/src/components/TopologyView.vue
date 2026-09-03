@@ -19,6 +19,39 @@ const advancedDropdownOpen = ref(false)
 const showAddRule = ref(false)
 const valueDropdownOpen = ref(false)
 const newRule = ref({ field: '', value: '' })
+const showAddTag = ref(false)
+const tagValueInputRef = ref<HTMLElement | null>(null)
+const tagValueDropdownPos = ref({ top: 0, left: 0, width: 0 })
+const tagValueDropdownOpen = ref(false)
+const newTag = ref({ key: '', value: '' })
+
+function openTagValueDropdown() {
+  if (!tagValueInputRef.value) return
+  const rect = tagValueInputRef.value.getBoundingClientRect()
+  tagValueDropdownPos.value = {
+    top: rect.bottom + 2,
+    left: rect.left,
+    width: rect.width,
+  }
+  tagValueDropdownOpen.value = true
+}
+
+function addTagRule() {
+  if (newTag.value.key && newTag.value.value) {
+    const key = newTag.value.key
+    const value = newTag.value.value
+    const token = `${key}=${value}`
+    if (!graphStore.tagFilter.includes(token)) {
+      graphStore.setTagFilter([...graphStore.tagFilter, token])
+    }
+    newTag.value = { key: '', value: '' }
+    tagValueDropdownOpen.value = false
+  }
+}
+
+function removeTagRule(token: string) {
+  graphStore.setTagFilter(graphStore.tagFilter.filter(t => t !== token))
+}
 
 function handleClickOutside(e: MouseEvent) {
   const target = e.target as Node
@@ -29,12 +62,21 @@ function handleClickOutside(e: MouseEvent) {
     typeDropdownOpen.value = false
   }
   if (tagFilterRef.value && !tagFilterRef.value.contains(target)) {
+    if ((target as HTMLElement).closest?.('.tag-value-dropdown')) {
+      return
+    }
     tagDropdownOpen.value = false
+    tagValueDropdownOpen.value = false
   }
   if (valueInputRef.value && !valueInputRef.value.contains(target)) {
-    valueDropdownOpen.value = false
+    if (!(target as HTMLElement).closest?.('.value-dropdown')) {
+      valueDropdownOpen.value = false
+    }
   }
   if (advancedFilterRef.value && !advancedFilterRef.value.contains(target)) {
+    if ((target as HTMLElement).closest?.('.value-dropdown')) {
+      return
+    }
     if (advancedDropdownOpen.value) {
       advancedDropdownOpen.value = false
       valueDropdownOpen.value = false
@@ -56,8 +98,8 @@ function addRule() {
   if (newRule.value.field && newRule.value.value) {
     graphStore.addFilterRule(newRule.value.field, newRule.value.value)
     newRule.value = { field: '', value: '' }
-    showAddRule.value = false
     valueDropdownOpen.value = false
+    valueInputRef.value?.querySelector('input')?.blur()
   }
 }
 
@@ -98,15 +140,6 @@ function toggleType(t: string) {
 
 function clearTypes() {
   graphStore.setTypeFilter([])
-}
-
-function toggleTag(tag: string) {
-  const current = graphStore.tagFilter
-  if (current.includes(tag)) {
-    graphStore.setTagFilter(current.filter(t => t !== tag))
-  } else {
-    graphStore.setTagFilter([...current, tag])
-  }
 }
 
 function clearTags() {
@@ -310,22 +343,62 @@ defineExpose({ fitGraph })
       </div>
       <div class="filter-group" v-if="graphStore.availableTags.length > 0" ref="tagFilterRef">
         <button class="overlay-btn" @click="tagDropdownOpen = !tagDropdownOpen">
-          🏷️ Tags ({{ graphStore.tagFilter.length || 'All' }})
+          🏷️ Tags ({{ graphStore.tagFilter.length }})
         </button>
-        <div v-if="tagDropdownOpen" class="filter-dropdown">
-          <div class="tag-section" v-for="tagKey in graphStore.availableTagKeys" :key="tagKey">
-            <div class="tag-key">{{ tagKey }}</div>
-            <label v-for="val in graphStore.getTagValues(tagKey)" :key="val" class="filter-option">
+        <div v-if="tagDropdownOpen" class="filter-dropdown advanced-dropdown">
+          <div class="filter-rule" v-for="token in graphStore.tagFilter" :key="token">
+            <span class="rule-field">{{ token.split('=')[0] }}</span>
+            <span class="rule-value">{{ token.split('=').slice(1).join('=') }}</span>
+            <button class="rule-remove" @click="removeTagRule(token)">×</button>
+          </div>
+          <div class="add-rule" v-if="!showAddTag">
+            <button class="add-btn" @click="showAddTag = true">+ Add Tag</button>
+          </div>
+          <div class="add-rule-form" v-else>
+            <select v-model="newTag.key" class="rule-select" @change="newTag.value = ''; tagValueDropdownOpen = false">
+              <option value="" disabled>Select tag key</option>
+              <option v-for="k in graphStore.availableTagKeys" :key="k" :value="k">
+                {{ k }}
+              </option>
+            </select>
+            <div class="value-input-wrapper" ref="tagValueInputRef">
               <input
-                type="checkbox"
-                :checked="graphStore.tagFilter.includes(`${tagKey}=${val}`)"
-                @change="toggleTag(`${tagKey}=${val}`)"
+                v-model="newTag.value"
+                class="rule-input"
+                :placeholder="newTag.key ? 'Value (click for suggestions)' : 'Select key first'"
+                :disabled="!newTag.key"
+                @focus="openTagValueDropdown()"
+                @click="openTagValueDropdown()"
+                @input="tagValueDropdownOpen = false"
               />
-              {{ val }}
-            </label>
+            </div>
+            <Teleport to="body">
+              <div
+                v-if="tagValueDropdownOpen && newTag.key && graphStore.getTagValues(newTag.key).length"
+                class="value-dropdown tag-value-dropdown"
+                :style="{
+                  top: tagValueDropdownPos.top + 'px',
+                  left: tagValueDropdownPos.left + 'px',
+                  width: tagValueDropdownPos.width + 'px',
+                }"
+              >
+                <div
+                  v-for="val in graphStore.getTagValues(newTag.key)"
+                  :key="val"
+                  class="value-option"
+                  @mousedown.prevent="newTag.value = val; tagValueDropdownOpen = false"
+                >
+                  {{ val }}
+                </div>
+              </div>
+            </Teleport>
+            <div class="add-rule-actions">
+              <button class="add-btn" @click="addTagRule" :disabled="!newTag.key || !newTag.value">Add</button>
+              <button class="cancel-btn" @click="showAddTag = false; newTag = { key: '', value: '' }; tagValueDropdownOpen = false">Cancel</button>
+            </div>
           </div>
           <button class="clear-btn" @click="clearTags" v-if="graphStore.tagFilter.length">
-            Clear
+            Clear All
           </button>
         </div>
       </div>
@@ -380,8 +453,10 @@ defineExpose({ fitGraph })
                 </div>
               </div>
             </Teleport>
-            <button class="add-btn" @click="addRule" :disabled="!newRule.field || !newRule.value">Add</button>
-            <button class="cancel-btn" @click="showAddRule = false; valueDropdownOpen = false">Cancel</button>
+            <div class="add-rule-actions">
+              <button class="add-btn" @click="addRule" :disabled="!newRule.field || !newRule.value">Add</button>
+              <button class="cancel-btn" @click="showAddRule = false; newRule = { field: '', value: '' }; valueDropdownOpen = false">Cancel</button>
+            </div>
           </div>
           <button class="clear-btn" @click="graphStore.clearFilterRules()" v-if="graphStore.filterRules.length">
             Clear All
@@ -578,6 +653,11 @@ defineExpose({ fitGraph })
   flex-direction: column;
   gap: 6px;
   margin-top: 8px;
+}
+
+.add-rule-actions {
+  display: flex;
+  gap: 6px;
 }
 
 .rule-select,
