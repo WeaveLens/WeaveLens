@@ -308,7 +308,7 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 			return
 		}
 		if !deleted {
-			writeError(w, http.StatusConflict, "Scan not found or cannot be deleted while running")
+			writeError(w, http.StatusConflict, "Scan not found, pinned, or cannot be deleted while running")
 			return
 		}
 
@@ -318,6 +318,40 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 		)
 
 		writeJSON(w, http.StatusOK, map[string]string{"id": scanID, "status": "deleted"})
+	})
+
+	mux.HandleFunc("POST /api/scans/{scanId}/pin", func(w http.ResponseWriter, r *http.Request) {
+		scanID := r.PathValue("scanId")
+		var req struct {
+			Pinned bool `json:"pinned"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+		ok, err := discovery.SetScanPinned(r.Context(), scanID, req.Pinned)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "Failed to set pinned state")
+			return
+		}
+		if !ok {
+			writeError(w, http.StatusNotFound, "Scan not found")
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"id": scanID, "pinned": req.Pinned})
+	})
+
+	mux.HandleFunc("POST /api/scans/clear-unpinned", func(w http.ResponseWriter, r *http.Request) {
+		removed, err := discovery.ClearUnpinned(r.Context())
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "Failed to clear unpinned scans")
+			return
+		}
+		logger.Info("scans_cleared_unpinned",
+			"removed", removed,
+			"request_id", security.GetRequestID(r.Context()),
+		)
+		writeJSON(w, http.StatusOK, map[string]int{"removed": removed})
 	})
 
 	mux.HandleFunc("GET /api/scans/{scanId}/export", func(w http.ResponseWriter, r *http.Request) {

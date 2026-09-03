@@ -43,6 +43,14 @@ func (f *fakeDiscoveryService) DeleteScan(ctx context.Context, scanID string) (b
 	return true, nil
 }
 
+func (f *fakeDiscoveryService) SetScanPinned(ctx context.Context, scanID string, pinned bool) (bool, error) {
+	return true, nil
+}
+
+func (f *fakeDiscoveryService) ClearUnpinned(ctx context.Context) (int, error) {
+	return 0, nil
+}
+
 func (f *fakeDiscoveryService) ListResources(ctx context.Context, scanID, category, resourceType string) ([]service.Resource, error) {
 	return nil, nil
 }
@@ -380,6 +388,14 @@ func (f *fakeDiscoveryServiceRejectDelete) CancelScan(ctx context.Context, scanI
 }
 func (f *fakeDiscoveryServiceRejectDelete) DeleteScan(ctx context.Context, scanID string) (bool, error) {
 	return false, nil
+}
+
+func (f *fakeDiscoveryServiceRejectDelete) SetScanPinned(ctx context.Context, scanID string, pinned bool) (bool, error) {
+	return true, nil
+}
+
+func (f *fakeDiscoveryServiceRejectDelete) ClearUnpinned(ctx context.Context) (int, error) {
+	return 0, nil
 }
 func (f *fakeDiscoveryServiceRejectDelete) ListResources(ctx context.Context, scanID, category, resourceType string) ([]service.Resource, error) {
 	return nil, nil

@@ -26,6 +26,7 @@ export interface Scan {
   edgeCount: number
   createdAt: string
   updatedAt: string
+  pinned?: boolean
 }
 
 export interface ScanConfig {

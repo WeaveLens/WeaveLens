@@ -177,6 +177,11 @@ func (s *discoveryService) DeleteScan(ctx context.Context, scanID string) (bool,
 		return false, nil
 	}
 
+	if scan.Pinned {
+		s.logger.Warn("attempted to delete pinned scan", "scanID", scanID)
+		return false, nil
+	}
+
 	if scan.Status == "RUNNING" {
 		s.mu.RLock()
 		_, inMemory := s.scans[scanID]
@@ -202,6 +207,37 @@ func (s *discoveryService) DeleteScan(ctx context.Context, scanID string) (bool,
 
 	s.logger.Info("scan deleted", "scanID", scanID)
 	return true, nil
+}
+
+func (s *discoveryService) SetScanPinned(ctx context.Context, scanID string, pinned bool) (bool, error) {
+	if s.history == nil {
+		return false, nil
+	}
+	return s.history.SetScanPinned(scanID, pinned), nil
+}
+
+func (s *discoveryService) ClearUnpinned(ctx context.Context) (int, error) {
+	if s.history == nil {
+		return 0, nil
+	}
+
+	scans := s.history.GetScans()
+	removed := 0
+	s.mu.Lock()
+	for _, scan := range scans {
+		if scan.Pinned {
+			continue
+		}
+		delete(s.scans, scan.ID)
+		if s.graphService != nil {
+			s.graphService.SetScanRegions(scan.ID, nil)
+		}
+	}
+	s.mu.Unlock()
+
+	removed = s.history.RemoveUnpinned()
+	s.logger.Info("cleared unpinned scans", "removed", removed)
+	return removed, nil
 }
 
 func (s *discoveryService) ListResources(ctx context.Context, scanID, category, resourceType string) ([]Resource, error) {

@@ -21,6 +21,7 @@ type ScanHistoryEntry struct {
 	Regions   []string  `json:"regions,omitempty"`
 	NodeCount int       `json:"nodeCount"`
 	EdgeCount int       `json:"edgeCount"`
+	Pinned    bool      `json:"pinned,omitempty"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
@@ -162,6 +163,47 @@ func (h *ScanHistory) RemoveScan(scanID string) bool {
 		if scan.ID == scanID {
 			h.data.Scans = append(h.data.Scans[:i], h.data.Scans[i+1:]...)
 			delete(h.data.Graphs, scanID)
+			h.save()
+			h.signalChange()
+			return true
+		}
+	}
+	return false
+}
+
+func (h *ScanHistory) RemoveUnpinned() int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	kept := h.data.Scans[:0]
+	removed := 0
+	for _, scan := range h.data.Scans {
+		if scan.Pinned {
+			kept = append(kept, scan)
+			continue
+		}
+		delete(h.data.Graphs, scan.ID)
+		removed++
+	}
+	h.data.Scans = append([]ScanHistoryEntry{}, kept...)
+	if removed > 0 {
+		h.save()
+		h.signalChange()
+	}
+	return removed
+}
+
+func (h *ScanHistory) SetScanPinned(scanID string, pinned bool) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	for i, scan := range h.data.Scans {
+		if scan.ID == scanID {
+			if h.data.Scans[i].Pinned == pinned {
+				return true
+			}
+			h.data.Scans[i].Pinned = pinned
+			h.data.Scans[i].UpdatedAt = time.Now().UTC()
 			h.save()
 			h.signalChange()
 			return true

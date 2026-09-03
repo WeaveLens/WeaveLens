@@ -17,6 +17,18 @@ func (f *fakeDiscoveryService) StartScan(ctx context.Context, regions []string) 
 	return "scan-123", nil
 }
 
+func (f *fakeDiscoveryService) DeleteScan(ctx context.Context, scanID string) (bool, error) {
+	return true, nil
+}
+
+func (f *fakeDiscoveryService) SetScanPinned(ctx context.Context, scanID string, pinned bool) (bool, error) {
+	return true, nil
+}
+
+func (f *fakeDiscoveryService) ClearUnpinned(ctx context.Context) (int, error) {
+	return 0, nil
+}
+
 func (f *fakeDiscoveryService) GetScanStatus(ctx context.Context, scanID string) (string, int, error) {
 	return "RUNNING", 5, nil
 }

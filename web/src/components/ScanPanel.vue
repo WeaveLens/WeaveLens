@@ -91,6 +91,8 @@ async function handleStartScan() {
 }
 
 async function handleDeleteScan(scanId: string) {
+  const scan = scanStore.scans.find(s => s.id === scanId)
+  if (scan?.pinned) return
   const ok = confirm(`Delete scan "${scanId}" from history? This cannot be undone.`)
   if (!ok) return
   try {
@@ -98,6 +100,29 @@ async function handleDeleteScan(scanId: string) {
   } catch {
   }
 }
+
+async function handleTogglePin(scanId: string) {
+  const scan = scanStore.scans.find(s => s.id === scanId)
+  const next = !scan?.pinned
+  try {
+    await scanStore.togglePin(scanId, next)
+  } catch {
+  }
+}
+
+async function handleClearUnpinned() {
+  const count = unpinnedCount.value
+  if (count === 0) return
+  const ok = confirm(`Delete ${count} unpinned scan${count === 1 ? '' : 's'}? Pinned scans will be kept.`)
+  if (!ok) return
+  try {
+    await scanStore.clearUnpinned()
+  } catch {
+  }
+}
+
+const unpinnedCount = computed(() => scanStore.scans.filter(s => !s.pinned).length)
+const hasUnpinnedScans = computed(() => unpinnedCount.value > 0)
 
 const statusColor = (status: string) => {
   switch (status) {
@@ -225,16 +250,27 @@ const regionButtonLabel = computed(() => {
 
     <div v-else-if="hasScans" class="scan-history">
       <h4>
-        Scan History
-        <span
-          class="history-count"
-          :class="{ full: scanStore.isHistoryFull }"
-          :title="scanStore.isHistoryFull
-            ? 'History is full (' + scanStore.maxHistoryCount + '). Adding a new scan will remove the oldest ones.'
-            : 'Saved ' + scanStore.historyCount + ' of ' + scanStore.maxHistoryCount + ' max scans'"
-        >
-          {{ scanStore.historyCount }}/{{ scanStore.maxHistoryCount }}
+        <span class="history-title">
+          Scan History
+          <span
+            class="history-count"
+            :class="{ full: scanStore.isHistoryFull }"
+            :title="scanStore.isHistoryFull
+              ? 'History is full (' + scanStore.maxHistoryCount + '). Adding a new scan will remove the oldest ones.'
+              : 'Saved ' + scanStore.historyCount + ' of ' + scanStore.maxHistoryCount + ' max scans'"
+          >
+            {{ scanStore.historyCount }}/{{ scanStore.maxHistoryCount }}
+          </span>
         </span>
+        <button
+          v-if="hasUnpinnedScans"
+          type="button"
+          class="clear-unpinned-btn"
+          @click="handleClearUnpinned"
+          :title="'Delete all unpinned scans (' + unpinnedCount + ')'"
+        >
+          Clear all
+        </button>
       </h4>
       <ul>
         <li
@@ -253,15 +289,27 @@ const regionButtonLabel = computed(() => {
           <div class="history-meta">
             <span class="history-id">{{ scan.id }}</span>
             <span class="history-nodes">{{ scan.nodeCount || 0 }} {{ (scan.nodeCount || 0) <= 1 ? 'service' : 'services' }}</span>
-            <button
-              type="button"
-              class="delete-btn"
-              :disabled="scan.status === 'RUNNING'"
-              :title="scan.status === 'RUNNING' ? 'Cannot delete a running scan' : 'Delete scan'"
-              @click.stop="handleDeleteScan(scan.id)"
-            >
-              ×
-            </button>
+            <div class="history-actions">
+              <button
+                type="button"
+                class="pin-btn"
+                :class="{ pinned: scan.pinned }"
+                :title="scan.pinned ? 'Unpin scan' : 'Pin scan (protects from deletion)'"
+                @click.stop="handleTogglePin(scan.id)"
+              >
+                {{ scan.pinned ? '📌' : '📍' }}
+              </button>
+              <button
+                v-if="!scan.pinned"
+                type="button"
+                class="delete-btn"
+                :disabled="scan.status === 'RUNNING'"
+                :title="scan.status === 'RUNNING' ? 'Cannot delete a running scan' : 'Delete scan'"
+                @click.stop="handleDeleteScan(scan.id)"
+              >
+                ×
+              </button>
+            </div>
           </div>
         </li>
       </ul>
@@ -549,6 +597,34 @@ const regionButtonLabel = computed(() => {
   font-size: 13px;
   font-weight: 600;
   color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.history-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.clear-unpinned-btn {
+  background: transparent;
+  border: 1px solid #ddd;
+  color: #666;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.clear-unpinned-btn:hover {
+  background: #ffebee;
+  border-color: #c62828;
+  color: #c62828;
 }
 
 .history-count {
@@ -641,13 +717,51 @@ const regionButtonLabel = computed(() => {
   border-color: #eee;
 }
 
+.pin-btn {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, border-color 0.15s;
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.pin-btn:hover {
+  background: #fff8e1;
+  border-color: #ffc107;
+  opacity: 1;
+}
+
+.pin-btn.pinned {
+  filter: none;
+  opacity: 1;
+  background: #fff8e1;
+  border-color: #ffc107;
+}
+
 .history-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   font-size: 10px;
   color: #999;
+}
+
+.history-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .history-time {

@@ -34,6 +34,30 @@ export async function deleteScan(scanId: string): Promise<void> {
   }
 }
 
+export async function setScanPinned(scanId: string, pinned: boolean): Promise<void> {
+  const response = await fetch(`${API_BASE}/scans/${encodeURIComponent(scanId)}/pin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pinned }),
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Unknown error' }))
+    throw new Error((error as { message: string }).message)
+  }
+}
+
+export async function clearUnpinnedScans(): Promise<number> {
+  const response = await fetch(`${API_BASE}/scans/clear-unpinned`, {
+    method: 'POST',
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Unknown error' }))
+    throw new Error((error as { message: string }).message)
+  }
+  const data = await response.json().catch(() => ({ removed: 0 }))
+  return (data as { removed: number }).removed
+}
+
 export async function getGraph(scanId: string): Promise<Graph> {
   const response = await fetch(`${API_BASE}/scans/${encodeURIComponent(scanId)}/graph`)
   return handleResponse<Graph>(response)
