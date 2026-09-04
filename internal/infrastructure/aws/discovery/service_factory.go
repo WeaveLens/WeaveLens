@@ -17,6 +17,7 @@ type ServiceConfigInput struct {
 func buildRegionScanners(clients *client.Clients, region string) []Scanner {
 	return []Scanner{
 		NewNetworkScanner(clients.EC2, region),
+		NewAttachmentScanner(clients.EC2Attachments, region),
 		NewComputeScanner(clients.EC2, region),
 		NewDatabaseScanner(clients.RDS, region),
 		NewLoadBalancerScanner(clients.ELBv2, region),

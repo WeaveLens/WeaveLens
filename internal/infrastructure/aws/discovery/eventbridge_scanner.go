@@ -3,6 +3,7 @@ package discovery
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
@@ -66,6 +67,21 @@ func (s *EventBridgeScanner) Scan(ctx context.Context) ([]*resource.Resource, er
 			if rule.ManagedBy != nil {
 				metadata["managed_by"] = *rule.ManagedBy
 			}
+			targetOutput, targetErr := s.client.ListTargetsByRule(ctx, &eventbridge.ListTargetsByRuleInput{
+				Rule:         rule.Name,
+				EventBusName: rule.EventBusName,
+			})
+			if targetErr == nil && targetOutput != nil {
+				var targetIDs []string
+				for _, target := range targetOutput.Targets {
+					if target.Arn != nil {
+						targetIDs = append(targetIDs, resourceIDFromARN(*target.Arn))
+					}
+				}
+				if len(targetIDs) > 0 {
+					metadata["target_ids"] = strings.Join(targetIDs, ",")
+				}
+			}
 
 			tags := make(map[string]string)
 			if arn := safePtr(rule.Arn); arn != "" {
@@ -109,4 +125,5 @@ type EventBridgeAPI interface {
 	ListRules(ctx context.Context, params *eventbridge.ListRulesInput, optFns ...func(*eventbridge.Options)) (*eventbridge.ListRulesOutput, error)
 	DescribeRule(ctx context.Context, params *eventbridge.DescribeRuleInput, optFns ...func(*eventbridge.Options)) (*eventbridge.DescribeRuleOutput, error)
 	ListTagsForResource(ctx context.Context, params *eventbridge.ListTagsForResourceInput, optFns ...func(*eventbridge.Options)) (*eventbridge.ListTagsForResourceOutput, error)
+	ListTargetsByRule(ctx context.Context, params *eventbridge.ListTargetsByRuleInput, optFns ...func(*eventbridge.Options)) (*eventbridge.ListTargetsByRuleOutput, error)
 }

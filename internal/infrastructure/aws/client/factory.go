@@ -20,21 +20,22 @@ import (
 )
 
 type Clients struct {
-	EC2          EC2API
-	RDS          RDSAPI
-	ELBv2        ELBv2API
-	S3           S3API
-	IAM          IAMAPI
-	Lambda       LambdaAPI
-	SQS          SQSAPI
-	SNS          SNSAPI
-	STS          STSAPI
-	ECR          ECRAPI
-	SecretsMgr   SecretsManagerAPI
-	DynamoDB     DynamoDBAPI
-	Elasticache  ElasticacheAPI
+	EC2            EC2API
+	EC2Attachments EC2AttachmentAPI
+	RDS            RDSAPI
+	ELBv2          ELBv2API
+	S3             S3API
+	IAM            IAMAPI
+	Lambda         LambdaAPI
+	SQS            SQSAPI
+	SNS            SNSAPI
+	STS            STSAPI
+	ECR            ECRAPI
+	SecretsMgr     SecretsManagerAPI
+	DynamoDB       DynamoDBAPI
+	Elasticache    ElasticacheAPI
 	CloudWatchLogs CloudWatchLogsAPI
-	EventBridge  EventBridgeAPI
+	EventBridge    EventBridgeAPI
 }
 
 type Factory struct{}
@@ -46,6 +47,7 @@ func NewFactory() *Factory {
 func (f *Factory) BuildClients(cfg aws.Config) *Clients {
 	return &Clients{
 		EC2:            ec2.NewFromConfig(cfg),
+		EC2Attachments: ec2.NewFromConfig(cfg),
 		RDS:            rds.NewFromConfig(cfg),
 		ELBv2:          elasticloadbalancingv2.NewFromConfig(cfg),
 		S3:             s3.NewFromConfig(cfg),

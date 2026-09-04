@@ -3,7 +3,9 @@ package discovery
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/elip/WeaveLens/internal/domain/resource"
 )
@@ -59,6 +61,20 @@ func (s *SNSScanner) Scan(ctx context.Context) ([]*resource.Resource, error) {
 			metadata := map[string]string{
 				"topic_arn": topicArn,
 			}
+			subscriptions, subErr := s.client.ListSubscriptionsByTopic(ctx, &sns.ListSubscriptionsByTopicInput{
+				TopicArn: aws.String(topicArn),
+			})
+			if subErr == nil && subscriptions != nil {
+				var targetIDs []string
+				for _, subscription := range subscriptions.Subscriptions {
+					if subscription.Endpoint != nil && strings.HasPrefix(*subscription.Endpoint, "arn:") {
+						targetIDs = append(targetIDs, resourceIDFromARN(*subscription.Endpoint))
+					}
+				}
+				if len(targetIDs) > 0 {
+					metadata["subscription_target_ids"] = strings.Join(targetIDs, ",")
+				}
+			}
 
 			res, err := resource.NewResource(
 				resource.ResourceID(topicName),
@@ -79,4 +95,5 @@ func (s *SNSScanner) Scan(ctx context.Context) ([]*resource.Resource, error) {
 
 type SNSAPI interface {
 	ListTopics(ctx context.Context, params *sns.ListTopicsInput, optFns ...func(*sns.Options)) (*sns.ListTopicsOutput, error)
+	ListSubscriptionsByTopic(ctx context.Context, params *sns.ListSubscriptionsByTopicInput, optFns ...func(*sns.Options)) (*sns.ListSubscriptionsByTopicOutput, error)
 }

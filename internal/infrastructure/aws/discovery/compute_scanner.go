@@ -3,6 +3,7 @@ package discovery
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/elip/WeaveLens/internal/domain/resource"
@@ -66,6 +67,15 @@ func (s *ComputeScanner) Scan(ctx context.Context) ([]*resource.Resource, error)
 				}
 				if instance.SubnetId != nil {
 					metadata["subnet_id"] = *instance.SubnetId
+				}
+				var securityGroupIDs []string
+				for _, group := range instance.SecurityGroups {
+					if group.GroupId != nil {
+						securityGroupIDs = append(securityGroupIDs, *group.GroupId)
+					}
+				}
+				if len(securityGroupIDs) > 0 {
+					metadata["security_group_ids"] = strings.Join(securityGroupIDs, ",")
 				}
 
 				res, err := resource.NewResource(

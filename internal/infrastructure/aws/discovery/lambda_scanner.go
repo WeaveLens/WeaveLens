@@ -3,6 +3,7 @@ package discovery
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/elip/WeaveLens/internal/domain/resource"
@@ -64,9 +65,35 @@ func (s *LambdaScanner) Scan(ctx context.Context) ([]*resource.Resource, error) 
 			}
 			if fn.Role != nil {
 				metadata["role"] = *fn.Role
+				metadata["iam_role_id"] = resourceIDFromARN(*fn.Role)
 			}
 			if fn.Version != nil {
 				metadata["version"] = *fn.Version
+			}
+			if fn.VpcConfig != nil {
+				if fn.VpcConfig.VpcId != nil {
+					metadata["vpc_id"] = *fn.VpcConfig.VpcId
+				}
+				if len(fn.VpcConfig.SubnetIds) > 0 {
+					metadata["subnet_ids"] = strings.Join(fn.VpcConfig.SubnetIds, ",")
+				}
+				if len(fn.VpcConfig.SecurityGroupIds) > 0 {
+					metadata["security_group_ids"] = strings.Join(fn.VpcConfig.SecurityGroupIds, ",")
+				}
+			}
+			mappings, mappingErr := s.client.ListEventSourceMappings(ctx, &lambda.ListEventSourceMappingsInput{
+				FunctionName: fn.FunctionName,
+			})
+			if mappingErr == nil && mappings != nil {
+				var sourceIDs []string
+				for _, mapping := range mappings.EventSourceMappings {
+					if mapping.EventSourceArn != nil {
+						sourceIDs = append(sourceIDs, resourceIDFromARN(*mapping.EventSourceArn))
+					}
+				}
+				if len(sourceIDs) > 0 {
+					metadata["event_source_ids"] = strings.Join(sourceIDs, ",")
+				}
 			}
 
 			res, err := resource.NewResource(
@@ -89,4 +116,5 @@ func (s *LambdaScanner) Scan(ctx context.Context) ([]*resource.Resource, error) 
 
 type LambdaAPI interface {
 	ListFunctions(ctx context.Context, params *lambda.ListFunctionsInput, optFns ...func(*lambda.Options)) (*lambda.ListFunctionsOutput, error)
+	ListEventSourceMappings(ctx context.Context, params *lambda.ListEventSourceMappingsInput, optFns ...func(*lambda.Options)) (*lambda.ListEventSourceMappingsOutput, error)
 }

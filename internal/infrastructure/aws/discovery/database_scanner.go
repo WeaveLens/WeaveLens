@@ -3,6 +3,7 @@ package discovery
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/elip/WeaveLens/internal/domain/resource"
@@ -56,6 +57,17 @@ func (s *DatabaseScanner) Scan(ctx context.Context) ([]*resource.Resource, error
 			}
 			if db.DBSubnetGroup != nil && db.DBSubnetGroup.VpcId != nil {
 				metadata["vpc_id"] = *db.DBSubnetGroup.VpcId
+			}
+			if db.DBSubnetGroup != nil {
+				var subnetIDs []string
+				for _, subnet := range db.DBSubnetGroup.Subnets {
+					if subnet.SubnetIdentifier != nil {
+						subnetIDs = append(subnetIDs, *subnet.SubnetIdentifier)
+					}
+				}
+				if len(subnetIDs) > 0 {
+					metadata["subnet_ids"] = strings.Join(subnetIDs, ",")
+				}
 			}
 
 			res, err := resource.NewResource(

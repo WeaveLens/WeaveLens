@@ -3,6 +3,7 @@ package discovery
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	"github.com/elip/WeaveLens/internal/domain/resource"
@@ -49,6 +50,15 @@ func (s *LoadBalancerScanner) Scan(ctx context.Context) ([]*resource.Resource, e
 			}
 			if lb.VpcId != nil {
 				metadata["vpc_id"] = *lb.VpcId
+			}
+			var subnetIDs []string
+			for _, zone := range lb.AvailabilityZones {
+				if zone.SubnetId != nil {
+					subnetIDs = append(subnetIDs, *zone.SubnetId)
+				}
+			}
+			if len(subnetIDs) > 0 {
+				metadata["subnet_ids"] = strings.Join(subnetIDs, ",")
 			}
 
 			res, err := resource.NewResource(

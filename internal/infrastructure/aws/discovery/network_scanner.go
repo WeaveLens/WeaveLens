@@ -3,6 +3,7 @@ package discovery
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
@@ -182,15 +183,38 @@ func (s *NetworkScanner) scanRouteTables(ctx context.Context) ([]*resource.Resou
 			if name == "" {
 				name = *rt.RouteTableId
 			}
+			metadata := map[string]string{"vpc_id": safePtr(rt.VpcId)}
+			var subnetIDs []string
+			var routeTargetIDs []string
+			for _, association := range rt.Associations {
+				if association.SubnetId != nil {
+					subnetIDs = append(subnetIDs, *association.SubnetId)
+				}
+			}
+			for _, route := range rt.Routes {
+				for _, target := range []string{
+					safePtr(route.GatewayId), safePtr(route.NatGatewayId),
+					safePtr(route.TransitGatewayId), safePtr(route.VpcPeeringConnectionId),
+					safePtr(route.NetworkInterfaceId),
+				} {
+					if target != "" {
+						routeTargetIDs = append(routeTargetIDs, target)
+					}
+				}
+			}
+			if len(subnetIDs) > 0 {
+				metadata["subnet_ids"] = strings.Join(subnetIDs, ",")
+			}
+			if len(routeTargetIDs) > 0 {
+				metadata["route_target_ids"] = strings.Join(routeTargetIDs, ",")
+			}
 
 			res, err := resource.NewResource(
 				resource.ResourceID(*rt.RouteTableId),
 				resource.ResourceType("RouteTable"),
 				resource.CategoryNetwork,
 				name,
-				resource.WithMetadata(map[string]string{
-					"vpc_id": safePtr(rt.VpcId),
-				}),
+				resource.WithMetadata(metadata),
 				resource.WithTags(tags),
 				resource.WithRegion(s.region),
 			)
@@ -333,17 +357,29 @@ func (s *NetworkScanner) scanSecurityGroups(ctx context.Context) ([]*resource.Re
 			if name == "" {
 				name = *sg.GroupName
 			}
+			metadata := map[string]string{
+				"group_id":   *sg.GroupId,
+				"group_name": *sg.GroupName,
+				"vpc_id":     safePtr(sg.VpcId),
+			}
+			var referencedGroupIDs []string
+			for _, permission := range append(sg.IpPermissions, sg.IpPermissionsEgress...) {
+				for _, pair := range permission.UserIdGroupPairs {
+					if pair.GroupId != nil {
+						referencedGroupIDs = append(referencedGroupIDs, *pair.GroupId)
+					}
+				}
+			}
+			if len(referencedGroupIDs) > 0 {
+				metadata["referenced_group_ids"] = strings.Join(referencedGroupIDs, ",")
+			}
 
 			res, err := resource.NewResource(
 				resource.ResourceID(*sg.GroupId),
 				resource.ResourceType("SecurityGroup"),
 				resource.CategorySecurity,
 				name,
-				resource.WithMetadata(map[string]string{
-					"group_id":   *sg.GroupId,
-					"group_name": *sg.GroupName,
-					"vpc_id":     safePtr(sg.VpcId),
-				}),
+				resource.WithMetadata(metadata),
 				resource.WithTags(tags),
 				resource.WithRegion(s.region),
 			)
@@ -375,6 +411,13 @@ func safePtr(s *string) string {
 		return ""
 	}
 	return *s
+}
+
+func resourceIDFromARN(arn string) string {
+	if idx := strings.LastIndex(arn, ":"); idx >= 0 && idx < len(arn)-1 {
+		return arn[idx+1:]
+	}
+	return arn
 }
 
 type EC2API interface {

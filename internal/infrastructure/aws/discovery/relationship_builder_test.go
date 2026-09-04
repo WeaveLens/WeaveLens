@@ -69,3 +69,42 @@ func TestRelationshipBuilder_OrphanedResources(t *testing.T) {
 		t.Errorf("Expected 0 relationships for orphaned subnet, got %d", len(relationships))
 	}
 }
+
+func TestRelationshipBuilder_AttachmentMetadata(t *testing.T) {
+	vpc, _ := resource.NewResource("vpc-123", "VPC", resource.CategoryNetwork, "vpc")
+	subnet, _ := resource.NewResource("subnet-456", "Subnet", resource.CategoryNetwork, "subnet")
+	securityGroup, _ := resource.NewResource("sg-789", "SecurityGroup", resource.CategorySecurity, "sg")
+	routeTable, _ := resource.NewResource("rtb-012", "RouteTable", resource.CategoryNetwork, "route-table")
+	alb, _ := resource.NewResource("alb-345", "ALB", resource.CategoryNetwork, "alb",
+		resource.WithMetadata(map[string]string{
+			"subnet_ids":         "subnet-456",
+			"security_group_ids": "sg-789",
+		}))
+	endpoint, _ := resource.NewResource("vpce-678", "VPCEndpoint", resource.CategoryNetwork, "endpoint",
+		resource.WithMetadata(map[string]string{"route_table_ids": "rtb-012"}))
+
+	relationships, err := NewRelationshipBuilder().Build([]*resource.Resource{
+		vpc, subnet, securityGroup, routeTable, alb, endpoint,
+	})
+	if err != nil {
+		t.Fatalf("Build() unexpected error: %v", err)
+	}
+
+	wanted := map[string]relationship.RelationshipType{
+		"alb-345->subnet-456": relationship.RelationshipAssociatedWith,
+		"alb-345->sg-789":     relationship.RelationshipAssociatedWith,
+		"vpce-678->rtb-012":   relationship.RelationshipAssociatedWith,
+	}
+	for _, rel := range relationships {
+		key := rel.SourceID() + "->" + rel.TargetID()
+		if expected, ok := wanted[key]; ok {
+			if rel.Type() != expected {
+				t.Errorf("%s type = %s, want %s", key, rel.Type(), expected)
+			}
+			delete(wanted, key)
+		}
+	}
+	for key := range wanted {
+		t.Errorf("missing attachment relationship %s", key)
+	}
+}
