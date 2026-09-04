@@ -2,6 +2,8 @@
 import { ref, onMounted, computed } from 'vue'
 import { getConnectionStatus } from '../api/client'
 import type { ConnectionStatus, ConnectionState } from '../types'
+import { theme } from '../config/theme'
+import Icon from './Icon.vue'
 
 const connection = ref<ConnectionStatus | null>(null)
 const loading = ref(true)
@@ -47,36 +49,36 @@ const stateLabel = (state: ConnectionState): string => {
 const stateColor = (state: ConnectionState): string => {
   switch (state) {
     case 'connected':
-      return '#4CAF50'
+      return theme.success
     case 'connecting':
-      return '#FF9800'
+      return theme.warning.DEFAULT
     case 'not_connected':
-      return '#9E9E9E'
+      return theme.gray.DEFAULT
     case 'authentication_error':
     case 'access_denied':
     case 'configuration_error':
     case 'unknown_error':
-      return '#F44336'
+      return theme.error.DEFAULT
     default:
-      return '#9E9E9E'
+      return theme.gray.DEFAULT
   }
 }
 
 const stateIcon = (state: ConnectionState): string => {
   switch (state) {
     case 'connected':
-      return '✓'
+      return 'icon-check'
     case 'connecting':
-      return '⟳'
+      return 'icon-loading'
     case 'not_connected':
-      return '○'
+      return 'icon-disconnected'
     case 'authentication_error':
     case 'access_denied':
     case 'configuration_error':
     case 'unknown_error':
-      return '✕'
+      return 'icon-error'
     default:
-      return '?'
+      return 'icon-error'
   }
 }
 
@@ -92,17 +94,21 @@ const hasError = computed(() => {
     <div class="panel-header">
       <h3>Cloud Connections</h3>
       <button @click="loadConnectionStatus" class="refresh-btn" :disabled="loading">
-        {{ loading ? '⟳' : '↻' }}
+        <Icon :name="loading ? 'icon-loading' : 'icon-check'" size="18" />
       </button>
     </div>
 
     <div v-if="loading" class="state-container loading">
-      <div class="state-icon">⟳</div>
+      <div class="state-icon">
+        <Icon name="icon-loading" size="20" />
+      </div>
       <span>Checking connection...</span>
     </div>
 
     <div v-else-if="error" class="state-container error">
-      <div class="state-icon">✕</div>
+      <div class="state-icon">
+        <Icon name="icon-error" size="20" />
+      </div>
       <div class="state-content">
         <span class="state-label">Error</span>
         <span class="state-message">{{ error }}</span>
@@ -120,7 +126,7 @@ const hasError = computed(() => {
           class="connection-status"
           :style="{ color: stateColor(connection.state) }"
         >
-          <span class="status-icon">{{ stateIcon(connection.state) }}</span>
+          <Icon :name="stateIcon(connection.state)" size="14" />
           {{ stateLabel(connection.state) }}
         </span>
       </div>
@@ -156,7 +162,9 @@ const hasError = computed(() => {
     </div>
 
     <div v-else class="state-container empty">
-      <div class="state-icon">○</div>
+      <div class="state-icon">
+        <Icon name="icon-disconnected" size="20" />
+      </div>
       <span>No connection data available</span>
       <button @click="loadConnectionStatus" class="retry-btn">Retry</button>
     </div>
@@ -166,7 +174,7 @@ const hasError = computed(() => {
 <style scoped>
 .cloud-connection {
   padding: 16px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .panel-header {
@@ -180,7 +188,7 @@ const hasError = computed(() => {
   margin: 0;
   font-size: calc(14px * var(--app-font-scale));
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .refresh-btn {
@@ -191,6 +199,10 @@ const hasError = computed(() => {
   border-radius: 4px;
   cursor: pointer;
   font-size: calc(14px * var(--app-font-scale));
+  border: 1px solid var(--color-border-lighter);
+  background: var(--color-white);
+  border-radius: 4px;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -198,6 +210,7 @@ const hasError = computed(() => {
 
 .refresh-btn:hover:not(:disabled) {
   background: var(--surface-alt, #f5f5f5);
+  background: var(--color-bg-soft);
 }
 
 .refresh-btn:disabled {
@@ -211,22 +224,23 @@ const hasError = computed(() => {
   gap: 12px;
   padding: 16px;
   background: var(--surface-alt, #f5f5f5);
+  background: var(--color-bg-soft);
   border-radius: 8px;
   font-size: calc(13px * var(--app-font-scale));
 }
 
 .state-container.loading {
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .state-container.error {
-  background: #ffebee;
-  color: #c62828;
+  background: var(--color-error-bg);
+  color: var(--color-error-dark);
   flex-wrap: wrap;
 }
 
 .state-container.empty {
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .state-icon {
@@ -236,7 +250,7 @@ const hasError = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
+  background: var(--color-white);
   border-radius: 50%;
 }
 
@@ -266,8 +280,8 @@ const hasError = computed(() => {
 
 .retry-btn {
   padding: 6px 12px;
-  background: #1976d2;
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -276,12 +290,12 @@ const hasError = computed(() => {
 }
 
 .retry-btn:hover {
-  background: #1565c0;
+  background: var(--color-primary-hover);
 }
 
 .connection-card {
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -293,6 +307,8 @@ const hasError = computed(() => {
   padding: 12px 16px;
   background: var(--surface-alt, #f5f5f5);
   border-bottom: 1px solid #e0e0e0;
+  background: var(--color-bg-soft);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .provider-info {
@@ -336,12 +352,12 @@ const hasError = computed(() => {
 }
 
 .label {
-  color: #666;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
 .value {
-  color: #333;
+  color: var(--color-text-primary);
   text-align: right;
   max-width: 180px;
   overflow: hidden;
@@ -363,10 +379,12 @@ const hasError = computed(() => {
   margin: 0 0 12px 0;
   color: #666;
   font-size: calc(13px * var(--app-font-scale));
+  color: var(--color-text-secondary);
+  font-size: 13px;
 }
 
 .setup-link {
-  color: #1976d2;
+  color: var(--color-primary);
   text-decoration: none;
   font-size: calc(13px * var(--app-font-scale));
   font-weight: 500;

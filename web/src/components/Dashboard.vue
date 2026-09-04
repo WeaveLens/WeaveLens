@@ -106,6 +106,8 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
   padding: 12px 24px;
   background: var(--app-header-bg, linear-gradient(135deg, #1976d2 0%, #1565c0 100%));
   color: var(--app-header-text, #fff);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  color: var(--color-white);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   z-index: 10;
   flex-shrink: 0;
@@ -140,6 +142,9 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: var(--app-header-text, #fff);
+  background: var(--color-overlay-white-15);
+  border: 1px solid var(--color-overlay-white-20);
+  color: var(--color-white);
   border-radius: 6px;
   cursor: pointer;
   font-size: calc(13px * var(--app-font-scale));
@@ -147,7 +152,7 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
 }
 
 .header-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--color-overlay-white-25);
 }
 
 .header-link {
@@ -155,6 +160,9 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: var(--app-header-text, #fff);
+  background: var(--color-overlay-white-15);
+  border: 1px solid var(--color-overlay-white-20);
+  color: var(--color-white);
   border-radius: 6px;
   cursor: pointer;
   text-decoration: none;
@@ -163,7 +171,7 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
 }
 
 .header-link:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--color-overlay-white-25);
 }
 
 .app-body {
@@ -176,6 +184,7 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
   width: 300px;
   flex-shrink: 0;
   background: var(--app-panel-bg, #fafafa);
+  background: var(--color-bg-subtle);
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -186,6 +195,11 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
 
 .right-panel {
   border-left: 1px solid var(--app-panel-border, #e0e0e0);
+  border-right: 1px solid var(--color-border);
+}
+
+.right-panel {
+  border-left: 1px solid var(--color-border);
 }
 
 .main-content {
@@ -221,6 +235,7 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
   .left-panel {
     border-right: none;
     border-bottom: 1px solid var(--app-panel-border, #e0e0e0);
+    border-bottom: 1px solid var(--color-border);
   }
 }
 </style>

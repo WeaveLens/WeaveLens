@@ -44,6 +44,8 @@ const categories = computed(() => settingsStore.currentTheme().categories)
 .legend {
   background: var(--surface, #fff);
   border-top: 1px solid var(--app-panel-border, #e0e0e0);
+  background: var(--color-white);
+  border-top: 1px solid var(--color-border);
   max-height: 200px;
   overflow: hidden;
   transition: max-height 0.2s ease;
@@ -67,6 +69,7 @@ const categories = computed(() => settingsStore.currentTheme().categories)
   font-size: calc(13px * var(--app-font-scale));
   font-weight: 600;
   color: var(--text-h, #333);
+  color: var(--color-text-primary);
 }
 
 .collapse-btn {
@@ -75,6 +78,8 @@ const categories = computed(() => settingsStore.currentTheme().categories)
   cursor: pointer;
   font-size: calc(10px * var(--app-font-scale));
   color: var(--text-muted, #666);
+  font-size: 10px;
+  color: var(--color-text-secondary);
   padding: 4px;
 }
 
@@ -97,6 +102,8 @@ const categories = computed(() => settingsStore.currentTheme().categories)
   cursor: pointer;
   font-size: calc(12px * var(--app-font-scale));
   background: var(--surface-alt, #f5f5f5);
+  font-size: 12px;
+  background: var(--color-bg-soft);
   border: 2px solid transparent;
   transition: all 0.2s;
 }
@@ -108,6 +115,12 @@ const categories = computed(() => settingsStore.currentTheme().categories)
 .legend-item.active {
   background: var(--accent-bg, #e3f2fd);
   border-color: var(--accent, #1976d2);
+  background: var(--color-border-light);
+}
+
+.legend-item.active {
+  background: var(--color-primary-bg);
+  border-color: var(--color-primary);
 }
 
 .legend-color {
@@ -129,7 +142,7 @@ const categories = computed(() => settingsStore.currentTheme().categories)
 .clear-btn {
   padding: 4px 12px;
   background: none;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border-lighter);
   border-radius: 4px;
   cursor: pointer;
   font-size: calc(11px * var(--app-font-scale));
@@ -138,5 +151,11 @@ const categories = computed(() => settingsStore.currentTheme().categories)
 
 .clear-btn:hover {
   background: var(--surface-alt, #f5f5f5);
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.clear-btn:hover {
+  background: var(--color-bg-soft);
 }
 </style>

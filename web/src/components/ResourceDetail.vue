@@ -2,6 +2,8 @@
 import { computed } from 'vue'
 import { useGraphStore } from '../stores/graph'
 import { getCategoryColor } from '../config/categories'
+import { theme } from '../config/theme'
+import Icon from './Icon.vue'
 import type { Relationship } from '../types'
 
 const graphStore = useGraphStore()
@@ -17,7 +19,7 @@ const relatedNode = (relationship: Relationship) => {
 }
 
 const categoryColor = computed(() => {
-  if (!selectedResource.value) return '#999'
+  if (!selectedResource.value) return theme.text.muted
   return getCategoryColor(selectedResource.value.category)
 })
 </script>
@@ -27,7 +29,7 @@ const categoryColor = computed(() => {
     <div v-if="selectedResource" class="detail-content">
       <div class="detail-header">
         <h3>Resource Detail</h3>
-        <button @click="graphStore.clearSelection" class="close-btn">✕</button>
+        <button @click="graphStore.clearSelection" class="close-btn"><Icon name="icon-close" size="16" /></button>
       </div>
       <div class="detail-card">
         <div class="resource-type-badge" :style="{ backgroundColor: categoryColor }">
@@ -100,7 +102,7 @@ const categoryColor = computed(() => {
     </div>
 
     <div v-else class="empty-state">
-      <div class="empty-icon">🔍</div>
+      <div class="empty-icon"><Icon name="icon-search" size="48" /></div>
       <h3>No Resource Selected</h3>
       <p>Click on a resource in the graph to view its details.</p>
     </div>
@@ -144,15 +146,22 @@ const categoryColor = computed(() => {
   cursor: pointer;
   font-size: calc(14px * var(--app-font-scale));
   color: #666;
+  background: var(--color-bg-soft);
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
 }
 
 .close-btn:hover {
-  background: #e0e0e0;
+  background: var(--color-border);
 }
 
 .detail-card {
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 16px;
@@ -164,6 +173,8 @@ const categoryColor = computed(() => {
   border-radius: 12px;
   color: white;
   font-size: calc(11px * var(--app-font-scale));
+  color: var(--color-white);
+  font-size: 11px;
   font-weight: 600;
   margin-bottom: 12px;
 }
@@ -184,12 +195,12 @@ const categoryColor = computed(() => {
 
 .label {
   font-weight: 500;
-  color: #666;
+  color: var(--color-text-secondary);
   flex-shrink: 0;
 }
 
 .value {
-  color: #333;
+  color: var(--color-text-primary);
   text-align: right;
   word-break: break-word;
   max-width: 60%;
@@ -206,7 +217,7 @@ const categoryColor = computed(() => {
   margin: 0 0 8px 0;
   font-size: calc(13px * var(--app-font-scale));
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .relationships-list {
@@ -220,8 +231,8 @@ const categoryColor = computed(() => {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   margin-bottom: 6px;
   font-size: calc(12px * var(--app-font-scale));
@@ -229,18 +240,18 @@ const categoryColor = computed(() => {
 
 .rel-type {
   font-weight: 500;
-  color: #1976d2;
-  background: #e3f2fd;
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
   padding: 2px 8px;
   border-radius: 4px;
 }
 
 .rel-arrow {
-  color: #999;
+  color: var(--color-text-muted);
 }
 
 .rel-node {
-  color: #333;
+  color: var(--color-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -254,18 +265,22 @@ const categoryColor = computed(() => {
   justify-content: center;
   padding: 32px;
   text-align: center;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .empty-icon {
   font-size: calc(48px * var(--app-font-scale));
   margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
 }
 
 .empty-state h3 {
   margin: 0 0 8px 0;
   font-size: calc(16px * var(--app-font-scale));
   color: #333;
+  font-size: 16px;
+  color: var(--color-text-primary);
 }
 
 .empty-state p {

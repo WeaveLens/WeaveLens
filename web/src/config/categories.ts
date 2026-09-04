@@ -1,3 +1,5 @@
+import { theme } from './theme'
+
 export interface CategoryMeta {
   label: string
   color: string
@@ -46,13 +48,13 @@ function withIcons(cats: Record<string, Omit<CategoryMeta, 'icon'>>): Record<str
 }
 
 export const CATEGORY_META: Record<string, CategoryMeta> = withIcons({
-  compute: { label: 'Compute', color: '#4CAF50' },
-  network: { label: 'Network', color: '#2196F3' },
-  database: { label: 'Database', color: '#9C27B0' },
-  storage: { label: 'Storage', color: '#FF9800' },
-  security: { label: 'Security', color: '#F44336' },
-  integration: { label: 'Integration', color: '#00BCD4' },
-  other: { label: 'Other', color: '#9E9E9E' },
+  compute: { label: 'Compute', color: theme.category.compute },
+  network: { label: 'Network', color: theme.category.network },
+  database: { label: 'Database', color: theme.category.database },
+  storage: { label: 'Storage', color: theme.category.storage },
+  security: { label: 'Security', color: theme.category.security },
+  integration: { label: 'Integration', color: theme.category.integration },
+  other: { label: 'Other', color: theme.category.other },
 })
 
 const light: SystemColors = {
@@ -191,8 +193,11 @@ export const THEMES: Record<ThemeId, ThemePreset> = {
 export const THEME_LIST: ThemePreset[] = Object.values(THEMES)
 
 export function getCategoryColor(category: string, themeId: ThemeId = 'default'): string {
-  const theme = THEMES[themeId] ?? THEMES.default
-  return theme.categories[category]?.color ?? theme.categories.other.color
+  if (themeId === 'default') {
+    return CATEGORY_META[category]?.color ?? theme.category.other
+  }
+  const selectedTheme = THEMES[themeId] ?? THEMES.default
+  return selectedTheme.categories[category]?.color ?? selectedTheme.categories.other.color
 }
 
 export function getSystemColor(name: keyof SystemColors, themeId: ThemeId = 'default'): string {

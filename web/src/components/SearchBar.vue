@@ -36,19 +36,19 @@ function onClear() {
   display: flex;
   gap: 8px;
   padding: 8px 16px;
-  background: white;
-  border-bottom: 1px solid #e0e0e0;
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-border);
 }
 .search-bar input {
   flex: 1;
   padding: 6px 10px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--color-border-input);
   border-radius: 4px;
 }
 .search-bar button {
   padding: 6px 12px;
-  background: #f5f5f5;
-  border: 1px solid #ccc;
+  background: var(--color-bg-soft);
+  border: 1px solid var(--color-border-input);
   border-radius: 4px;
   cursor: pointer;
 }

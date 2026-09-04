@@ -2,6 +2,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useScanStore } from '../stores/scan'
 import { getRegions, type RegionInfo } from '../api/client'
+import { theme } from '../config/theme'
+import Icon from './Icon.vue'
 
 const scanStore = useScanStore()
 const selectedRegions = ref<string[]>([])
@@ -123,15 +125,15 @@ const hasUnpinnedScans = computed(() => unpinnedCount.value > 0)
 const statusColor = (status: string) => {
   switch (status) {
     case 'RUNNING':
-      return '#4CAF50'
+      return theme.success
     case 'COMPLETED':
-      return '#2196F3'
+      return theme.info
     case 'FAILED':
-      return '#F44336'
+      return theme.error.DEFAULT
     case 'CANCELLED':
-      return '#FF9800'
+      return theme.warning.DEFAULT
     default:
-      return '#9E9E9E'
+      return theme.gray.DEFAULT
   }
 }
 
@@ -315,7 +317,7 @@ const regionButtonLabel = computed(() => {
       v-else-if="!isLoading && !hasScans"
       class="empty-state"
     >
-      <div class="empty-icon">🔍</div>
+      <div class="empty-icon"><Icon name="icon-search" size="32" /></div>
       <p>No scans yet. Start your first scan above.</p>
     </div>
   </div>
@@ -335,6 +337,7 @@ const regionButtonLabel = computed(() => {
   font-size: calc(14px * var(--app-font-scale));
   font-weight: 600;
   color: var(--text-h, #333);
+  color: var(--color-text-primary);
 }
 
 .scan-form {
@@ -353,7 +356,7 @@ const regionButtonLabel = computed(() => {
 .label-text {
   font-size: calc(12px * var(--app-font-scale));
   font-weight: 500;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .region-btn {
@@ -367,21 +370,29 @@ const regionButtonLabel = computed(() => {
   background: white;
   cursor: pointer;
   color: var(--text-h, #333);
+  border: 1px solid var(--color-border-lighter);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--color-white);
+  cursor: pointer;
+  color: var(--color-text-primary);
   text-align: left;
 }
 
 .region-btn:hover {
-  border-color: #bbb;
+  border-color: var(--color-border-input-alt);
 }
 
 .region-btn:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
 }
 
 .caret {
   font-size: calc(10px * var(--app-font-scale));
   color: #999;
+  font-size: 10px;
+  color: var(--color-text-muted);
 }
 
 .region-dropdown {
@@ -392,6 +403,7 @@ const regionButtonLabel = computed(() => {
   max-height: 260px;
   background: white;
   border: 1px solid var(--border, #ddd);
+  border: 1px solid var(--color-border-lighter);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 10;
@@ -411,6 +423,8 @@ const regionButtonLabel = computed(() => {
   padding: 12px;
   color: #999;
   font-size: calc(12px * var(--app-font-scale));
+  color: var(--color-text-muted);
+  font-size: 12px;
   text-align: center;
 }
 
@@ -426,6 +440,11 @@ const regionButtonLabel = computed(() => {
 
 .region-option:hover {
   background: var(--surface-alt, #f5f5f5);
+  color: var(--color-text-primary);
+}
+
+.region-option:hover {
+  background: var(--color-bg-soft);
 }
 
 .region-option input {
@@ -440,8 +459,8 @@ const regionButtonLabel = computed(() => {
   align-items: center;
   gap: 8px;
   padding: 8px 8px;
-  border-top: 1px solid #eee;
-  background: #fafafa;
+  border-top: 1px solid var(--color-border-lighter);
+  background: var(--color-bg-subtle);
 }
 
 .clear-btn,
@@ -456,33 +475,35 @@ const regionButtonLabel = computed(() => {
 
 .clear-btn {
   background: none;
-  color: #1976d2;
+  color: var(--color-primary);
 }
 
 .clear-btn:hover {
-  background: #e3f2fd;
+  background: var(--color-primary-bg);
 }
 
 .ok-btn {
-  background: #1976d2;
+  background: var(--color-primary);
   color: white;
   margin-left: auto;
 }
 
 .ok-btn:hover {
-  background: #1565c0;
+  background: var(--color-primary-hover);
 }
 
 .region-hint {
   font-size: calc(11px * var(--app-font-scale));
   color: #888;
+  font-size: 11px;
+  color: var(--color-text-muted-alt);
   padding: 0 2px;
 }
 
 .start-btn {
   padding: 10px 16px;
-  background: #1976d2;
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -492,11 +513,11 @@ const regionButtonLabel = computed(() => {
 }
 
 .start-btn:hover:not(:disabled) {
-  background: #1565c0;
+  background: var(--color-primary-hover);
 }
 
 .start-btn:disabled {
-  background: #90caf9;
+  background: var(--color-primary-light);
   cursor: not-allowed;
 }
 
@@ -510,8 +531,8 @@ const regionButtonLabel = computed(() => {
 .spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
+  border: 2px solid var(--color-overlay-white-30);
+  border-top-color: var(--color-white);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -526,10 +547,12 @@ const regionButtonLabel = computed(() => {
   gap: 8px;
   margin-top: 12px;
   padding: 10px 12px;
-  background: #ffebee;
+  background: var(--color-error-bg);
   border-radius: 6px;
   color: #c62828;
   font-size: calc(12px * var(--app-font-scale));
+  color: var(--color-error-dark);
+  font-size: 12px;
 }
 
 .error-icon {
@@ -545,11 +568,12 @@ const regionButtonLabel = computed(() => {
   font-size: calc(13px * var(--app-font-scale));
   font-weight: 600;
   color: var(--text-h, #333);
+  color: var(--color-text-primary);
 }
 
 .scan-card {
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 12px;
 }
@@ -568,11 +592,12 @@ const regionButtonLabel = computed(() => {
 
 .label {
   font-weight: 500;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .value {
   color: var(--text-h, #333);
+  color: var(--color-text-primary);
 }
 
 .mono {
@@ -593,6 +618,7 @@ const regionButtonLabel = computed(() => {
   font-size: calc(13px * var(--app-font-scale));
   font-weight: 600;
   color: var(--text-h, #333);
+  color: var(--color-text-primary);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -610,6 +636,9 @@ const regionButtonLabel = computed(() => {
   border: 1px solid var(--border, #ddd);
   color: #666;
   font-size: calc(11px * var(--app-font-scale));
+  border: 1px solid var(--color-border-lighter);
+  color: var(--color-text-secondary);
+  font-size: 11px;
   padding: 3px 8px;
   border-radius: 4px;
   cursor: pointer;
@@ -618,25 +647,25 @@ const regionButtonLabel = computed(() => {
 }
 
 .clear-unpinned-btn:hover {
-  background: #ffebee;
-  border-color: #c62828;
-  color: #c62828;
+  background: var(--color-error-bg);
+  border-color: var(--color-error-dark);
+  color: var(--color-error-dark);
 }
 
 .history-count {
   margin-left: 8px;
   font-size: calc(11px * var(--app-font-scale));
   font-weight: 500;
-  color: #1976d2;
-  background: #e3f2fd;
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
   padding: 2px 8px;
   border-radius: 12px;
   cursor: help;
 }
 
 .history-count.full {
-  color: #c62828;
-  background: #ffebee;
+  color: var(--color-error-dark);
+  background: var(--color-error-bg);
 }
 
 .scan-history ul {
@@ -651,6 +680,8 @@ const regionButtonLabel = computed(() => {
   padding: 10px 8px;
   border-bottom: 1px solid #eee;
   font-size: calc(12px * var(--app-font-scale));
+  border-bottom: 1px solid var(--color-border-lighter);
+  font-size: 12px;
   cursor: pointer;
   border-radius: 4px;
   transition: background 0.15s;
@@ -658,10 +689,11 @@ const regionButtonLabel = computed(() => {
 
 .history-item:hover {
   background: var(--surface-alt, #f5f5f5);
+  background: var(--color-bg-soft);
 }
 
 .history-item.active {
-  background: #e3f2fd;
+  background: var(--color-primary-bg);
 }
 
 .history-item:last-child {
@@ -680,7 +712,7 @@ const regionButtonLabel = computed(() => {
 }
 
 .history-region {
-  color: #666;
+  color: var(--color-text-secondary);
   flex: 1;
   text-align: right;
 }
@@ -696,6 +728,10 @@ const regionButtonLabel = computed(() => {
   border-radius: 4px;
   color: #c62828;
   font-size: calc(14px * var(--app-font-scale));
+  border: 1px solid var(--color-border-lighter);
+  border-radius: 4px;
+  color: var(--color-error-dark);
+  font-size: 14px;
   line-height: 1;
   cursor: pointer;
   padding: 0;
@@ -703,14 +739,14 @@ const regionButtonLabel = computed(() => {
 }
 
 .delete-btn:hover:not(:disabled) {
-  background: #ffebee;
-  border-color: #c62828;
+  background: var(--color-error-bg);
+  border-color: var(--color-error-dark);
 }
 
 .delete-btn:disabled {
-  color: #bbb;
+  color: var(--color-border-input-alt);
   cursor: not-allowed;
-  border-color: #eee;
+  border-color: var(--color-border-lighter);
 }
 
 .pin-btn {
@@ -721,6 +757,7 @@ const regionButtonLabel = computed(() => {
   justify-content: center;
   background: transparent;
   border: 1px solid var(--border, #ddd);
+  border: 1px solid var(--color-border-lighter);
   border-radius: 4px;
   font-size: calc(12px * var(--app-font-scale));
   line-height: 1;
@@ -732,16 +769,16 @@ const regionButtonLabel = computed(() => {
 }
 
 .pin-btn:hover {
-  background: #fff8e1;
-  border-color: #ffc107;
+  background: var(--color-warning-bg);
+  border-color: var(--color-amber);
   opacity: 1;
 }
 
 .pin-btn.pinned {
   filter: none;
   opacity: 1;
-  background: #fff8e1;
-  border-color: #ffc107;
+  background: var(--color-warning-bg);
+  border-color: var(--color-amber);
 }
 
 .history-meta {
@@ -751,6 +788,8 @@ const regionButtonLabel = computed(() => {
   gap: 4px;
   font-size: calc(10px * var(--app-font-scale));
   color: #999;
+  font-size: 10px;
+  color: var(--color-text-muted);
 }
 
 .history-actions {
@@ -762,7 +801,7 @@ const regionButtonLabel = computed(() => {
 
 .history-time {
   white-space: nowrap;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .history-id {
@@ -785,14 +824,14 @@ const regionButtonLabel = computed(() => {
   margin-top: 20px;
   text-align: center;
   padding: 20px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .loading-state {
   margin-top: 20px;
   text-align: center;
   padding: 20px;
-  color: #666;
+  color: var(--color-text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -802,6 +841,8 @@ const regionButtonLabel = computed(() => {
 .empty-icon {
   font-size: calc(32px * var(--app-font-scale));
   margin-bottom: 8px;
+  display: flex;
+  justify-content: center;
 }
 
 .empty-state p {

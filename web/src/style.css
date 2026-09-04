@@ -16,6 +16,62 @@
   --mono: ui-monospace, Consolas, monospace;
 
   --app-font-scale: 1;
+  --color-white: #ffffff;
+  --color-black: #000000;
+
+  --color-text-primary: #333333;
+  --color-text-secondary: #666666;
+  --color-text-muted: #999999;
+  --color-text-muted-alt: #888888;
+
+  --color-bg: #ffffff;
+  --color-bg-subtle: #fafafa;
+  --color-bg-soft: #f5f5f5;
+  --color-bg-soft-alt: #f0f0f0;
+  --color-bg-card: #ffffff;
+
+  --color-border: #e0e0e0;
+  --color-border-light: #e8e8e8;
+  --color-border-lighter: #eeeeee;
+  --color-border-input: #cccccc;
+  --color-border-input-alt: #bbbbbb;
+
+  --color-primary: #1976d2;
+  --color-primary-hover: #1565c0;
+  --color-primary-light: #90caf9;
+  --color-primary-bg: #e3f2fd;
+
+  --color-success: #4CAF50;
+  --color-info: #2196F3;
+  --color-warning: #FF9800;
+  --color-warning-dark: #e65100;
+  --color-warning-bg: #fff3e0;
+  --color-amber: #ffc107;
+  --color-amber-bg: #fff8e1;
+  --color-error: #F44336;
+  --color-error-dark: #c62828;
+  --color-error-dark-alt: #d32f2f;
+  --color-error-light: #ff5252;
+  --color-error-bg: #ffebee;
+  --color-neutral: #9E9E9E;
+
+  --color-category-compute: #4CAF50;
+  --color-category-network: #2196F3;
+  --color-category-database: #9C27B0;
+  --color-category-storage: #FF9800;
+  --color-category-security: #F44336;
+  --color-category-integration: #00BCD4;
+  --color-category-other: #9E9E9E;
+
+  --color-terminal-bg: #263238;
+  --color-terminal-btn: #37474f;
+  --color-terminal-border: #455a64;
+  --color-terminal-text: #e0e0e0;
+
+  --color-overlay-white-15: rgba(255, 255, 255, 0.15);
+  --color-overlay-white-20: rgba(255, 255, 255, 0.2);
+  --color-overlay-white-25: rgba(255, 255, 255, 0.25);
+  --color-overlay-white-30: rgba(255, 255, 255, 0.3);
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
@@ -49,6 +105,16 @@ body, #app {
     --social-bg: rgba(47, 48, 58, 0.5);
     --shadow:
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+
+    --color-text-primary: #e5e7eb;
+    --color-text-secondary: #9ca3af;
+    --color-text-muted: #6b7280;
+    --color-bg: #16171d;
+    --color-bg-subtle: #1f2028;
+    --color-bg-soft: #2e303a;
+    --color-bg-card: #1f2028;
+    --color-border: #2e303a;
+    --color-border-light: #3a3f4b;
   }
 
   #social .button-icon {

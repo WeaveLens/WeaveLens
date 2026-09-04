@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { getConnectionStatus } from '../api/client'
+import Icon from './Icon.vue'
 
 const copied = ref<string | null>(null)
 
@@ -46,7 +47,7 @@ async function checkConnection() {
             <div class="code-block">
               <code>aws configure --profile weavelens</code>
               <button @click="copyToClipboard('aws configure --profile weavelens', 'cmd1')" class="copy-btn">
-                {{ copied === 'cmd1' ? '✓ Copied' : 'Copy' }}
+                <Icon v-if="copied === 'cmd1'" name="icon-check" size="12" class="copy-icon" />{{ copied === 'cmd1' ? 'Copied' : 'Copy' }}
               </button>
             </div>
           </li>
@@ -57,21 +58,21 @@ async function checkConnection() {
             <div class="code-block">
               <code>AWS_PROFILE=weavelens AWS_REGION=us-east-1 go run ./cmd/weavelens</code>
               <button @click="copyToClipboard('AWS_PROFILE=weavelens AWS_REGION=us-east-1 go run ./cmd/weavelens', 'cmd2')" class="copy-btn">
-                {{ copied === 'cmd2' ? '✓ Copied' : 'Copy' }}
+                <Icon v-if="copied === 'cmd2'" name="icon-check" size="12" class="copy-icon" />{{ copied === 'cmd2' ? 'Copied' : 'Copy' }}
               </button>
             </div>
             <p><em>Option B: Build and run binary</em></p>
             <div class="code-block">
               <code>go build -o weavelens ./cmd/weavelens && AWS_PROFILE=weavelens AWS_REGION=us-east-1 ./weavelens</code>
               <button @click="copyToClipboard('go build -o weavelens ./cmd/weavelens\nAWS_PROFILE=weavelens AWS_REGION=us-east-1 ./weavelens', 'cmd2b')" class="copy-btn">
-                {{ copied === 'cmd2b' ? '✓ Copied' : 'Copy' }}
+                <Icon v-if="copied === 'cmd2b'" name="icon-check" size="12" class="copy-icon" />{{ copied === 'cmd2b' ? 'Copied' : 'Copy' }}
               </button>
             </div>
             <p><em>Or export variables first</em></p>
             <div class="code-block">
               <code>export AWS_PROFILE=weavelens&#10;export AWS_REGION=us-east-1&#10;go run ./cmd/weavelens</code>
               <button @click="copyToClipboard('export AWS_PROFILE=weavelens\nexport AWS_REGION=us-east-1\ngo run ./cmd/weavelens', 'cmd2c')" class="copy-btn">
-                {{ copied === 'cmd2c' ? '✓ Copied' : 'Copy' }}
+                <Icon v-if="copied === 'cmd2c'" name="icon-check" size="12" class="copy-icon" />{{ copied === 'cmd2c' ? 'Copied' : 'Copy' }}
               </button>
             </div>
           </li>
@@ -90,14 +91,14 @@ async function checkConnection() {
         <div class="code-block">
           <code>AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1 go run ./cmd/weavelens</code>
           <button @click="copyToClipboard('AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1 go run ./cmd/weavelens', 'cmd3')" class="copy-btn">
-            {{ copied === 'cmd3' ? '✓ Copied' : 'Copy' }}
+            <Icon v-if="copied === 'cmd3'" name="icon-check" size="12" class="copy-icon" />{{ copied === 'cmd3' ? 'Copied' : 'Copy' }}
           </button>
         </div>
         <p>Or after building:</p>
         <div class="code-block">
           <code>AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1 ./weavelens</code>
           <button @click="copyToClipboard('AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_REGION=us-east-1 ./weavelens', 'cmd3b')" class="copy-btn">
-            {{ copied === 'cmd3b' ? '✓ Copied' : 'Copy' }}
+            <Icon v-if="copied === 'cmd3b'" name="icon-check" size="12" class="copy-icon" />{{ copied === 'cmd3b' ? 'Copied' : 'Copy' }}
           </button>
         </div>
         <p class="warning">
@@ -114,14 +115,14 @@ async function checkConnection() {
         <div class="code-block">
           <code>docker run -d --name localstack -p 4566:4566 localstack/localstack</code>
           <button @click="copyToClipboard('docker run -d --name localstack -p 4566:4566 localstack/localstack', 'ls1')" class="copy-btn">
-            {{ copied === 'ls1' ? '✓ Copied' : 'Copy' }}
+            <Icon v-if="copied === 'ls1'" name="icon-check" size="12" class="copy-icon" />{{ copied === 'ls1' ? 'Copied' : 'Copy' }}
           </button>
         </div>
         <p>Then configure WeaveLens to use LocalStack:</p>
         <div class="code-block">
           <code>export AWS_ENDPOINT_URL=http://localhost:4566&#10;export AWS_ACCESS_KEY_ID=test&#10;export AWS_SECRET_ACCESS_KEY=test&#10;export AWS_REGION=us-east-1&#10;go run ./cmd/weavelens</code>
           <button @click="copyToClipboard('export AWS_ENDPOINT_URL=http://localhost:4566\nexport AWS_ACCESS_KEY_ID=test\nexport AWS_SECRET_ACCESS_KEY=test\nexport AWS_REGION=us-east-1\ngo run ./cmd/weavelens', 'ls2')" class="copy-btn">
-            {{ copied === 'ls2' ? '✓ Copied' : 'Copy' }}
+            <Icon v-if="copied === 'ls2'" name="icon-check" size="12" class="copy-icon" />{{ copied === 'ls2' ? 'Copied' : 'Copy' }}
           </button>
         </div>
         <p class="note">
@@ -138,14 +139,14 @@ async function checkConnection() {
         <div class="code-block">
           <code>AWS_ROLE_ARN=arn:aws:iam::123456789012:role/WeaveLensScanner go run ./cmd/weavelens</code>
           <button @click="copyToClipboard('AWS_ROLE_ARN=arn:aws:iam::123456789012:role/WeaveLensScanner go run ./cmd/weavelens', 'cmd4')" class="copy-btn">
-            {{ copied === 'cmd4' ? '✓ Copied' : 'Copy' }}
+            <Icon v-if="copied === 'cmd4'" name="icon-check" size="12" class="copy-icon" />{{ copied === 'cmd4' ? 'Copied' : 'Copy' }}
           </button>
         </div>
         <p>Or after building:</p>
         <div class="code-block">
           <code>AWS_ROLE_ARN=arn:aws:iam::123456789012:role/WeaveLensScanner ./weavelens</code>
           <button @click="copyToClipboard('AWS_ROLE_ARN=arn:aws:iam::123456789012:role/WeaveLensScanner ./weavelens', 'cmd4b')" class="copy-btn">
-            {{ copied === 'cmd4b' ? '✓ Copied' : 'Copy' }}
+            <Icon v-if="copied === 'cmd4b'" name="icon-check" size="12" class="copy-icon" />{{ copied === 'cmd4b' ? 'Copied' : 'Copy' }}
           </button>
         </div>
         <p class="note">
@@ -202,7 +203,7 @@ async function checkConnection() {
             <div class="code-block">
               <code>aws sts get-caller-identity</code>
               <button @click="copyToClipboard('aws sts get-caller-identity', 'cmd5')" class="copy-btn">
-                {{ copied === 'cmd5' ? '✓ Copied' : 'Copy' }}
+                <Icon v-if="copied === 'cmd5'" name="icon-check" size="12" class="copy-icon" />{{ copied === 'cmd5' ? 'Copied' : 'Copy' }}
               </button>
             </div>
           </div>
@@ -236,7 +237,7 @@ async function checkConnection() {
 .guide-header {
   margin-bottom: 32px;
   padding-bottom: 24px;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--color-border);
 }
 
 .guide-header h1 {
@@ -248,6 +249,13 @@ async function checkConnection() {
 .subtitle {
   color: #666;
   font-size: calc(15px * var(--app-font-scale));
+  font-size: 28px;
+  color: var(--color-text-primary);
+}
+
+.subtitle {
+  color: var(--color-text-secondary);
+  font-size: 15px;
   line-height: 1.5;
   max-width: 600px;
 }
@@ -259,7 +267,7 @@ async function checkConnection() {
 }
 
 .setup-section {
-  background: #fafafa;
+  background: var(--color-bg-subtle);
   border-radius: 8px;
   padding: 20px;
 }
@@ -268,6 +276,8 @@ async function checkConnection() {
   margin: 0 0 16px 0;
   font-size: calc(18px * var(--app-font-scale));
   color: #333;
+  font-size: 18px;
+  color: var(--color-text-primary);
 }
 
 .steps {
@@ -282,21 +292,23 @@ async function checkConnection() {
 .steps li strong {
   display: block;
   margin-bottom: 4px;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .steps li p {
   margin: 4px 0;
   color: #666;
   font-size: calc(14px * var(--app-font-scale));
+  color: var(--color-text-secondary);
+  font-size: 14px;
 }
 
 .code-block {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #263238;
-  color: #e0e0e0;
+  background: var(--color-terminal-bg);
+  color: var(--color-terminal-text);
   padding: 12px 16px;
   border-radius: 6px;
   margin: 8px 0;
@@ -313,32 +325,43 @@ async function checkConnection() {
 
 .copy-btn {
   padding: 6px 12px;
-  background: #37474f;
-  color: #e0e0e0;
-  border: 1px solid #455a64;
+  background: var(--color-terminal-btn);
+  color: var(--color-terminal-text);
+  border: 1px solid var(--color-terminal-border);
   border-radius: 4px;
   cursor: pointer;
   font-size: calc(11px * var(--app-font-scale));
   white-space: nowrap;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.copy-icon {
+  color: var(--color-success);
 }
 
 .copy-btn:hover {
-  background: #455a64;
+  background: var(--color-terminal-border);
 }
 
 .warning {
   color: #e65100;
   font-size: calc(13px * var(--app-font-scale));
+  color: var(--color-warning-dark);
+  font-size: 13px;
   margin-top: 12px;
   padding: 8px 12px;
-  background: #fff3e0;
+  background: var(--color-warning-bg);
   border-radius: 4px;
 }
 
 .note {
   color: #666;
   font-size: calc(13px * var(--app-font-scale));
+  color: var(--color-text-secondary);
+  font-size: 13px;
   margin-top: 8px;
 }
 
@@ -350,16 +373,18 @@ async function checkConnection() {
 }
 
 .permission-category {
-  background: white;
+  background: var(--color-white);
   padding: 12px;
   border-radius: 6px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
 }
 
 .permission-category h3 {
   margin: 0 0 8px 0;
   font-size: calc(13px * var(--app-font-scale));
   color: #1976d2;
+  font-size: 13px;
+  color: var(--color-primary);
 }
 
 .permission-category ul {
@@ -371,6 +396,8 @@ async function checkConnection() {
 .permission-category li {
   font-size: calc(12px * var(--app-font-scale));
   color: #666;
+  font-size: 12px;
+  color: var(--color-text-secondary);
   padding: 2px 0;
 }
 
@@ -384,12 +411,16 @@ async function checkConnection() {
   margin: 0 0 4px 0;
   font-size: calc(14px * var(--app-font-scale));
   color: #333;
+  font-size: 14px;
+  color: var(--color-text-primary);
 }
 
 .trouble-item p {
   margin: 4px 0;
   color: #666;
   font-size: calc(13px * var(--app-font-scale));
+  color: var(--color-text-secondary);
+  font-size: 13px;
 }
 
 .guide-footer {
@@ -397,13 +428,13 @@ async function checkConnection() {
   gap: 12px;
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .primary-btn {
   padding: 10px 24px;
-  background: #1976d2;
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -412,14 +443,14 @@ async function checkConnection() {
 }
 
 .primary-btn:hover {
-  background: #1565c0;
+  background: var(--color-primary-hover);
 }
 
 .secondary-btn {
   padding: 10px 24px;
   background: transparent;
-  color: #1976d2;
-  border: 1px solid #1976d2;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
   border-radius: 6px;
   cursor: pointer;
   font-size: calc(14px * var(--app-font-scale));
@@ -429,7 +460,7 @@ async function checkConnection() {
 }
 
 .secondary-btn:hover {
-  background: #e3f2fd;
+  background: var(--color-primary-bg);
 }
 
 /* Responsive */

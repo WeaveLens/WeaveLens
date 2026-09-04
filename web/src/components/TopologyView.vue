@@ -6,6 +6,8 @@ import { useScanStore } from '../stores/scan'
 import { useSettingsStore } from '../stores/settings'
 import { setScanLayout } from '../api/client'
 import { tierOf, type LayoutMode } from '../stores/graph'
+import { theme } from '../config/theme'
+import Icon from './Icon.vue'
 
 const graphStore = useGraphStore()
 const scanStore = useScanStore()
@@ -24,39 +26,6 @@ const advancedDropdownOpen = ref(false)
 const showAddRule = ref(false)
 const valueDropdownOpen = ref(false)
 const newRule = ref({ field: '', value: '' })
-const showAddTag = ref(false)
-const tagValueInputRef = ref<HTMLElement | null>(null)
-const tagValueDropdownPos = ref({ top: 0, left: 0, width: 0 })
-const tagValueDropdownOpen = ref(false)
-const newTag = ref({ key: '', value: '' })
-
-function openTagValueDropdown() {
-  if (!tagValueInputRef.value) return
-  const rect = tagValueInputRef.value.getBoundingClientRect()
-  tagValueDropdownPos.value = {
-    top: rect.bottom + 2,
-    left: rect.left,
-    width: rect.width,
-  }
-  tagValueDropdownOpen.value = true
-}
-
-function addTagRule() {
-  if (newTag.value.key && newTag.value.value) {
-    const key = newTag.value.key
-    const value = newTag.value.value
-    const token = `${key}=${value}`
-    if (!graphStore.tagFilter.includes(token)) {
-      graphStore.setTagFilter([...graphStore.tagFilter, token])
-    }
-    newTag.value = { key: '', value: '' }
-    tagValueDropdownOpen.value = false
-  }
-}
-
-function removeTagRule(token: string) {
-  graphStore.setTagFilter(graphStore.tagFilter.filter(t => t !== token))
-}
 
 function handleClickOutside(e: MouseEvent) {
   const target = e.target as Node
@@ -67,21 +36,12 @@ function handleClickOutside(e: MouseEvent) {
     typeDropdownOpen.value = false
   }
   if (tagFilterRef.value && !tagFilterRef.value.contains(target)) {
-    if ((target as HTMLElement).closest?.('.tag-value-dropdown')) {
-      return
-    }
     tagDropdownOpen.value = false
-    tagValueDropdownOpen.value = false
   }
   if (valueInputRef.value && !valueInputRef.value.contains(target)) {
-    if (!(target as HTMLElement).closest?.('.value-dropdown')) {
-      valueDropdownOpen.value = false
-    }
+    valueDropdownOpen.value = false
   }
   if (advancedFilterRef.value && !advancedFilterRef.value.contains(target)) {
-    if ((target as HTMLElement).closest?.('.value-dropdown')) {
-      return
-    }
     if (advancedDropdownOpen.value) {
       advancedDropdownOpen.value = false
       valueDropdownOpen.value = false
@@ -103,8 +63,8 @@ function addRule() {
   if (newRule.value.field && newRule.value.value) {
     graphStore.addFilterRule(newRule.value.field, newRule.value.value)
     newRule.value = { field: '', value: '' }
+    showAddRule.value = false
     valueDropdownOpen.value = false
-    valueInputRef.value?.querySelector('input')?.blur()
   }
 }
 
@@ -145,6 +105,15 @@ function toggleType(t: string) {
 
 function clearTypes() {
   graphStore.setTypeFilter([])
+}
+
+function toggleTag(tag: string) {
+  const current = graphStore.tagFilter
+  if (current.includes(tag)) {
+    graphStore.setTagFilter(current.filter(t => t !== tag))
+  } else {
+    graphStore.setTagFilter([...current, tag])
+  }
 }
 
 function clearTags() {
@@ -190,9 +159,9 @@ function initCy() {
           'font-size': 11,
           'text-valign': 'bottom',
           'text-margin-y': 8,
-          color: '#333',
+          color: theme.text.primary,
           'border-width': 2,
-          'border-color': '#fff',
+          'border-color': theme.colorWhite,
         },
       },
       {
@@ -200,12 +169,12 @@ function initCy() {
         style: {
           label: 'data(label)',
           width: 2,
-          'line-color': '#999',
-          'target-arrow-color': '#999',
+          'line-color': theme.text.secondary,
+          'target-arrow-color': theme.text.secondary,
           'target-arrow-shape': 'triangle',
           'curve-style': 'bezier',
           'font-size': 9,
-          color: '#666',
+          color: theme.text.secondary,
           'text-rotation': 'autorotate',
           'text-margin-y': -12,
         },
@@ -214,14 +183,14 @@ function initCy() {
         selector: 'node:selected',
         style: {
           'border-width': 4,
-          'border-color': '#1976d2',
+          'border-color': theme.primary.DEFAULT,
         },
       },
       {
         selector: 'node.highlighted',
         style: {
           'border-width': 3,
-          'border-color': '#4CAF50',
+          'border-color': theme.success,
         },
       },
     ],
@@ -655,62 +624,22 @@ defineExpose({ fitGraph })
       </div>
       <div class="filter-group" v-if="graphStore.availableTags.length > 0" ref="tagFilterRef">
         <button class="overlay-btn" @click="tagDropdownOpen = !tagDropdownOpen">
-          🏷️ Tags ({{ graphStore.tagFilter.length }})
+          🏷️ Tags ({{ graphStore.tagFilter.length || 'All' }})
         </button>
-        <div v-if="tagDropdownOpen" class="filter-dropdown advanced-dropdown">
-          <div class="filter-rule" v-for="token in graphStore.tagFilter" :key="token">
-            <span class="rule-field">{{ token.split('=')[0] }}</span>
-            <span class="rule-value">{{ token.split('=').slice(1).join('=') }}</span>
-            <button class="rule-remove" @click="removeTagRule(token)">×</button>
-          </div>
-          <div class="add-rule" v-if="!showAddTag">
-            <button class="add-btn" @click="showAddTag = true">+ Add Tag</button>
-          </div>
-          <div class="add-rule-form" v-else>
-            <select v-model="newTag.key" class="rule-select" @change="newTag.value = ''; tagValueDropdownOpen = false">
-              <option value="" disabled>Select tag key</option>
-              <option v-for="k in graphStore.availableTagKeys" :key="k" :value="k">
-                {{ k }}
-              </option>
-            </select>
-            <div class="value-input-wrapper" ref="tagValueInputRef">
+        <div v-if="tagDropdownOpen" class="filter-dropdown">
+          <div class="tag-section" v-for="tagKey in graphStore.availableTagKeys" :key="tagKey">
+            <div class="tag-key">{{ tagKey }}</div>
+            <label v-for="val in graphStore.getTagValues(tagKey)" :key="val" class="filter-option">
               <input
-                v-model="newTag.value"
-                class="rule-input"
-                :placeholder="newTag.key ? 'Value (click for suggestions)' : 'Select key first'"
-                :disabled="!newTag.key"
-                @focus="openTagValueDropdown()"
-                @click="openTagValueDropdown()"
-                @input="tagValueDropdownOpen = false"
+                type="checkbox"
+                :checked="graphStore.tagFilter.includes(`${tagKey}=${val}`)"
+                @change="toggleTag(`${tagKey}=${val}`)"
               />
-            </div>
-            <Teleport to="body">
-              <div
-                v-if="tagValueDropdownOpen && newTag.key && graphStore.getTagValues(newTag.key).length"
-                class="value-dropdown tag-value-dropdown"
-                :style="{
-                  top: tagValueDropdownPos.top + 'px',
-                  left: tagValueDropdownPos.left + 'px',
-                  width: tagValueDropdownPos.width + 'px',
-                }"
-              >
-                <div
-                  v-for="val in graphStore.getTagValues(newTag.key)"
-                  :key="val"
-                  class="value-option"
-                  @mousedown.prevent="newTag.value = val; tagValueDropdownOpen = false"
-                >
-                  {{ val }}
-                </div>
-              </div>
-            </Teleport>
-            <div class="add-rule-actions">
-              <button class="add-btn" @click="addTagRule" :disabled="!newTag.key || !newTag.value">Add</button>
-              <button class="cancel-btn" @click="showAddTag = false; newTag = { key: '', value: '' }; tagValueDropdownOpen = false">Cancel</button>
-            </div>
+              {{ val }}
+            </label>
           </div>
           <button class="clear-btn" @click="clearTags" v-if="graphStore.tagFilter.length">
-            Clear All
+            Clear
           </button>
         </div>
       </div>
@@ -765,10 +694,8 @@ defineExpose({ fitGraph })
                 </div>
               </div>
             </Teleport>
-            <div class="add-rule-actions">
-              <button class="add-btn" @click="addRule" :disabled="!newRule.field || !newRule.value">Add</button>
-              <button class="cancel-btn" @click="showAddRule = false; newRule = { field: '', value: '' }; valueDropdownOpen = false">Cancel</button>
-            </div>
+            <button class="add-btn" @click="addRule" :disabled="!newRule.field || !newRule.value">Add</button>
+            <button class="cancel-btn" @click="showAddRule = false; valueDropdownOpen = false">Cancel</button>
           </div>
           <button class="clear-btn" @click="graphStore.clearFilterRules()" v-if="graphStore.filterRules.length">
             Clear All
@@ -777,7 +704,7 @@ defineExpose({ fitGraph })
       </div>
     </div>
     <div v-if="!graphStore.nodes.length" class="empty-state">
-      <div class="empty-icon">📊</div>
+      <div class="empty-icon"><Icon name="icon-graph-empty" size="48" /></div>
       <h3>No Data</h3>
       <p>Connect an AWS account and start a scan to visualize your infrastructure.</p>
     </div>
@@ -792,6 +719,7 @@ defineExpose({ fitGraph })
   position: relative;
   min-height: 0;
   background: var(--app-graph-bg, #fafafa);
+  background: var(--color-bg-subtle);
 }
 
 .graph-controls {
@@ -799,8 +727,8 @@ defineExpose({ fitGraph })
   justify-content: space-between;
   align-items: center;
   padding: 8px 16px;
-  background: white;
-  border-bottom: 1px solid #e0e0e0;
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 
@@ -808,6 +736,8 @@ defineExpose({ fitGraph })
   padding: 6px 12px;
   background: var(--surface-alt, #f5f5f5);
   border: 1px solid var(--border, #ddd);
+  background: var(--color-bg-soft);
+  border: 1px solid var(--color-border-lighter);
   border-radius: 4px;
   cursor: pointer;
   font-size: calc(12px * var(--app-font-scale));
@@ -815,6 +745,7 @@ defineExpose({ fitGraph })
 
 .control-btn:hover {
   background: var(--border, #e0e0e0);
+  background: var(--color-border);
 }
 
 .control-btn:disabled {
@@ -865,6 +796,8 @@ defineExpose({ fitGraph })
 .node-count {
   font-size: calc(12px * var(--app-font-scale));
   color: #666;
+  font-size: 12px;
+  color: var(--color-text-secondary);
 }
 
 .topology-view {
@@ -872,6 +805,7 @@ defineExpose({ fitGraph })
   min-height: 0;
   width: 100%;
   background: var(--app-graph-bg, #fafafa);
+  background: var(--color-bg-subtle);
 }
 
 .graph-overlay {
@@ -892,6 +826,7 @@ defineExpose({ fitGraph })
   padding: 6px 12px;
   background: white;
   border: 1px solid var(--border, #ddd);
+  border: 1px solid var(--color-border-lighter);
   border-radius: 4px;
   cursor: pointer;
   font-size: calc(12px * var(--app-font-scale));
@@ -900,6 +835,7 @@ defineExpose({ fitGraph })
 
 .overlay-btn:hover {
   background: var(--surface-alt, #f5f5f5);
+  background: var(--color-bg-soft);
 }
 
 .filter-dropdown {
@@ -908,6 +844,7 @@ defineExpose({ fitGraph })
   left: 0;
   background: white;
   border: 1px solid var(--border, #ddd);
+  border: 1px solid var(--color-border-lighter);
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   min-width: 150px;
@@ -929,6 +866,7 @@ defineExpose({ fitGraph })
 
 .filter-option:hover {
   background: var(--surface-alt, #f5f5f5);
+  background: var(--color-bg-soft);
 }
 
 .match-toggle {
@@ -936,7 +874,7 @@ defineExpose({ fitGraph })
   gap: 4px;
   margin-bottom: 8px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-border-lighter);
 }
 
 .toggle-btn {
@@ -944,6 +882,8 @@ defineExpose({ fitGraph })
   padding: 4px 8px;
   background: var(--surface-alt, #f5f5f5);
   border: 1px solid var(--border, #ddd);
+  background: var(--color-bg-soft);
+  border: 1px solid var(--color-border-lighter);
   border-radius: 4px;
   cursor: pointer;
   font-size: calc(11px * var(--app-font-scale));
@@ -958,6 +898,13 @@ defineExpose({ fitGraph })
 
 .toggle-btn:hover:not(.active) {
   background: var(--border, #e0e0e0);
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.toggle-btn:hover:not(.active) {
+  background: var(--color-border);
 }
 
 .advanced-dropdown {
@@ -970,6 +917,7 @@ defineExpose({ fitGraph })
   gap: 8px;
   padding: 6px 8px;
   background: var(--surface-alt, #f5f5f5);
+  background: var(--color-bg-soft);
   border-radius: 4px;
   margin-bottom: 4px;
   font-size: calc(11px * var(--app-font-scale));
@@ -977,18 +925,18 @@ defineExpose({ fitGraph })
 
 .rule-field {
   font-weight: 600;
-  color: #1976d2;
+  color: var(--color-primary);
 }
 
 .rule-value {
   flex: 1;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .rule-remove {
   width: 20px;
   height: 20px;
-  background: #ff5252;
+  background: var(--color-error-light);
   color: white;
   border: none;
   border-radius: 50%;
@@ -998,7 +946,7 @@ defineExpose({ fitGraph })
 }
 
 .rule-remove:hover {
-  background: #d32f2f;
+  background: var(--color-error-dark-alt);
 }
 
 .add-rule {
@@ -1012,15 +960,11 @@ defineExpose({ fitGraph })
   margin-top: 8px;
 }
 
-.add-rule-actions {
-  display: flex;
-  gap: 6px;
-}
-
 .rule-select,
 .rule-input {
   padding: 6px 8px;
   border: 1px solid var(--border, #ddd);
+  border: 1px solid var(--color-border-lighter);
   border-radius: 4px;
   font-size: calc(11px * var(--app-font-scale));
 }
@@ -1028,6 +972,7 @@ defineExpose({ fitGraph })
 .add-btn {
   padding: 6px 12px;
   background: var(--accent, #1976d2);
+  background: var(--color-primary);
   color: white;
   border: none;
   border-radius: 4px;
@@ -1037,12 +982,15 @@ defineExpose({ fitGraph })
 
 .add-btn:hover {
   background: var(--accent, #1565c0);
+  background: var(--color-primary-hover);
 }
 
 .cancel-btn {
   padding: 6px 12px;
   background: var(--surface-alt, #f5f5f5);
   border: 1px solid var(--border, #ddd);
+  background: var(--color-bg-soft);
+  border: 1px solid var(--color-border-lighter);
   border-radius: 4px;
   cursor: pointer;
   font-size: calc(11px * var(--app-font-scale));
@@ -1055,11 +1003,17 @@ defineExpose({ fitGraph })
 .rule-input:disabled {
   background: var(--surface-alt, #f5f5f5);
   color: #999;
+  background: var(--color-border);
+}
+
+.rule-input:disabled {
+  background: var(--color-bg-soft);
+  color: var(--color-text-muted);
   cursor: not-allowed;
 }
 
 .add-btn:disabled {
-  background: #ccc;
+  background: var(--color-border-input);
   cursor: not-allowed;
 }
 
@@ -1071,6 +1025,7 @@ defineExpose({ fitGraph })
   position: fixed;
   background: white;
   border: 1px solid var(--border, #ddd);
+  border: 1px solid var(--color-border-lighter);
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   max-height: 150px;
@@ -1085,7 +1040,7 @@ defineExpose({ fitGraph })
 }
 
 .value-option:hover {
-  background: #f0f0f0;
+  background: var(--color-bg-soft-alt);
 }
 
 .tag-section {
@@ -1095,9 +1050,10 @@ defineExpose({ fitGraph })
 .tag-key {
   font-size: calc(10px * var(--app-font-scale));
   font-weight: 600;
-  color: #1976d2;
+  color: var(--color-primary);
   padding: 4px 8px;
   background: var(--surface-alt, #f5f5f5);
+  background: var(--color-bg-soft);
   border-radius: 4px;
   margin-bottom: 4px;
 }
@@ -1107,6 +1063,10 @@ defineExpose({ fitGraph })
   color: #666;
   padding: 4px 8px;
   background: var(--surface-alt, #f5f5f5);
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  padding: 4px 8px;
+  background: var(--color-bg-soft);
   border-radius: 4px;
   margin-top: 4px;
 }
@@ -1117,6 +1077,8 @@ defineExpose({ fitGraph })
   padding: 4px;
   background: var(--surface-alt, #f5f5f5);
   border: 1px solid var(--border, #ddd);
+  background: var(--color-bg-soft);
+  border: 1px solid var(--color-border-lighter);
   border-radius: 4px;
   cursor: pointer;
   font-size: calc(11px * var(--app-font-scale));
@@ -1124,6 +1086,7 @@ defineExpose({ fitGraph })
 
 .clear-btn:hover {
   background: var(--border, #e0e0e0);
+  background: var(--color-border);
 }
 
 .empty-state {
@@ -1132,19 +1095,23 @@ defineExpose({ fitGraph })
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  color: #666;
+  color: var(--color-text-secondary);
   pointer-events: none;
 }
 
 .empty-icon {
   font-size: calc(48px * var(--app-font-scale));
   margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
 }
 
 .empty-state h3 {
   margin: 0 0 8px 0;
   font-size: calc(18px * var(--app-font-scale));
   color: #333;
+  font-size: 18px;
+  color: var(--color-text-primary);
 }
 
 .empty-state p {
