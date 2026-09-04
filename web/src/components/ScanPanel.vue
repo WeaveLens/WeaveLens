@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useScanStore } from '../stores/scan'
-import { useGraphStore } from '../stores/graph'
 import { getRegions, type RegionInfo } from '../api/client'
 
 const scanStore = useScanStore()
-const graphStore = useGraphStore()
 const selectedRegions = ref<string[]>([])
 const regions = ref<RegionInfo[]>([])
 const regionDropdownOpen = ref(false)
@@ -78,8 +76,6 @@ function getRegionLabel(regionCode?: string): string {
 }
 
 function loadHistoricalScan(scanId: string) {
-  graphStore.clearGraph()
-  graphStore.loadGraph(scanId)
   scanStore.selectScan(scanStore.scans.find(s => s.id === scanId) || null)
 }
 

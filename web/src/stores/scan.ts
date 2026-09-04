@@ -58,7 +58,7 @@ export const useScanStore = defineStore('scan', () => {
     try {
       const scan = await getScanStatus(scanId)
       const existing = scans.value.find(s => s.id === scanId)
-      const enriched: Scan = { ...scan, pinned: existing?.pinned ?? scan.pinned ?? false, locked: existing?.locked ?? scan.locked ?? false }
+      const enriched: Scan = { ...scan, pinned: existing?.pinned ?? scan.pinned ?? false, locked: existing?.locked ?? scan.locked ?? false, layout: existing?.layout ?? scan.layout }
       const idx = scans.value.findIndex(s => s.id === scanId)
       if (idx >= 0) {
         scans.value[idx] = enriched

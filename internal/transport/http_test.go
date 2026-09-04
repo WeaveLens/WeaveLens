@@ -51,6 +51,18 @@ func (f *fakeDiscoveryService) SetScanLocked(ctx context.Context, scanID string,
 	return true, nil
 }
 
+func (f *fakeDiscoveryService) SetScanLayout(ctx context.Context, scanID string, layout string) (bool, error) {
+	return true, nil
+}
+
+func (f *fakeDiscoveryService) SetScanPositions(ctx context.Context, scanID string, data service.PositionData) error {
+	return nil
+}
+
+func (f *fakeDiscoveryService) GetScanPositions(ctx context.Context, scanID string) (service.PositionData, bool) {
+	return service.PositionData{}, false
+}
+
 func (f *fakeDiscoveryService) ClearUnpinned(ctx context.Context) (int, error) {
 	return 0, nil
 }
@@ -400,6 +412,18 @@ func (f *fakeDiscoveryServiceRejectDelete) SetScanPinned(ctx context.Context, sc
 
 func (f *fakeDiscoveryServiceRejectDelete) SetScanLocked(ctx context.Context, scanID string, locked bool) (bool, error) {
 	return true, nil
+}
+
+func (f *fakeDiscoveryServiceRejectDelete) SetScanLayout(ctx context.Context, scanID string, layout string) (bool, error) {
+	return true, nil
+}
+
+func (f *fakeDiscoveryServiceRejectDelete) SetScanPositions(ctx context.Context, scanID string, data service.PositionData) error {
+	return nil
+}
+
+func (f *fakeDiscoveryServiceRejectDelete) GetScanPositions(ctx context.Context, scanID string) (service.PositionData, bool) {
+	return service.PositionData{}, false
 }
 
 func (f *fakeDiscoveryServiceRejectDelete) ClearUnpinned(ctx context.Context) (int, error) {

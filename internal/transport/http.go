@@ -362,6 +362,55 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 		writeJSON(w, http.StatusOK, map[string]any{"id": scanID, "locked": req.Locked})
 	})
 
+	mux.HandleFunc("POST /api/scans/{scanId}/layout", func(w http.ResponseWriter, r *http.Request) {
+		scanID := r.PathValue("scanId")
+		var req struct {
+			Layout string `json:"layout"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+		ok, err := discovery.SetScanLayout(r.Context(), scanID, req.Layout)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "Failed to set layout")
+			return
+		}
+		if !ok {
+			writeError(w, http.StatusNotFound, "Scan not found")
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"id": scanID, "layout": req.Layout})
+	})
+
+	mux.HandleFunc("GET /api/scans/{scanId}/positions", func(w http.ResponseWriter, r *http.Request) {
+		scanID := r.PathValue("scanId")
+		data, ok := discovery.GetScanPositions(r.Context(), scanID)
+		if !ok {
+			writeJSON(w, http.StatusOK, map[string]any{"id": scanID, "positions": map[string]any{}})
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"id":        scanID,
+			"positions": data.Positions,
+			"viewport":  data.Viewport,
+		})
+	})
+
+	mux.HandleFunc("POST /api/scans/{scanId}/positions", func(w http.ResponseWriter, r *http.Request) {
+		scanID := r.PathValue("scanId")
+		var data service.PositionData
+		if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+			writeError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+		if err := discovery.SetScanPositions(r.Context(), scanID, data); err != nil {
+			writeError(w, http.StatusInternalServerError, "Failed to save positions")
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"id": scanID})
+	})
+
 	mux.HandleFunc("POST /api/scans/clear-unpinned", func(w http.ResponseWriter, r *http.Request) {
 		removed, err := discovery.ClearUnpinned(r.Context())
 		if err != nil {

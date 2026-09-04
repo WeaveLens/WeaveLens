@@ -29,6 +29,18 @@ func (f *fakeDiscoveryService) SetScanLocked(ctx context.Context, scanID string,
 	return true, nil
 }
 
+func (f *fakeDiscoveryService) SetScanLayout(ctx context.Context, scanID string, layout string) (bool, error) {
+	return true, nil
+}
+
+func (f *fakeDiscoveryService) SetScanPositions(ctx context.Context, scanID string, data service.PositionData) error {
+	return nil
+}
+
+func (f *fakeDiscoveryService) GetScanPositions(ctx context.Context, scanID string) (service.PositionData, bool) {
+	return service.PositionData{}, false
+}
+
 func (f *fakeDiscoveryService) ClearUnpinned(ctx context.Context) (int, error) {
 	return 0, nil
 }

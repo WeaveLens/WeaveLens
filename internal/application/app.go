@@ -141,7 +141,9 @@ func (a *App) Run(ctx context.Context) error {
 	discoveryService.SetGraphService(graphService)
 
 	scanHistory := service.NewScanHistory()
+	positionsStore := service.NewPositionsStore()
 	discoveryService.SetHistory(scanHistory)
+	discoveryService.SetPositions(positionsStore)
 	graphService.SetHistory(scanHistory)
 
 	fileWatcher := service.NewFileWatcher(

@@ -13,13 +13,14 @@ import (
 )
 
 type discoveryService struct {
-	eventBus  *nats.EventBus
-	logger    *slog.Logger
-	mu        sync.RWMutex
-	scans     map[string]*ScanRecord
-	discovery discovery.ResourceDiscovery
+	eventBus     *nats.EventBus
+	logger       *slog.Logger
+	mu           sync.RWMutex
+	scans        map[string]*ScanRecord
+	discovery    discovery.ResourceDiscovery
 	graphService GraphService
-	history *ScanHistory
+	history      *ScanHistory
+	positions    *PositionsStore
 }
 
 func (s *discoveryService) SetGraphService(gs GraphService) {
@@ -28,6 +29,10 @@ func (s *discoveryService) SetGraphService(gs GraphService) {
 
 func (s *discoveryService) SetHistory(h *ScanHistory) {
 	s.history = h
+}
+
+func (s *discoveryService) SetPositions(ps *PositionsStore) {
+	s.positions = ps
 }
 
 func (s *discoveryService) GetScans() []ScanHistoryEntry {
@@ -204,6 +209,9 @@ func (s *discoveryService) DeleteScan(ctx context.Context, scanID string) (bool,
 	if !removed {
 		return false, nil
 	}
+	if s.positions != nil {
+		s.positions.Delete(scanID)
+	}
 
 	s.logger.Info("scan deleted", "scanID", scanID)
 	return true, nil
@@ -223,6 +231,13 @@ func (s *discoveryService) SetScanLocked(ctx context.Context, scanID string, loc
 	return s.history.SetScanLocked(scanID, locked), nil
 }
 
+func (s *discoveryService) SetScanLayout(ctx context.Context, scanID string, layout string) (bool, error) {
+	if s.history == nil {
+		return false, nil
+	}
+	return s.history.SetScanLayout(scanID, layout), nil
+}
+
 func (s *discoveryService) ClearUnpinned(ctx context.Context) (int, error) {
 	if s.history == nil {
 		return 0, nil
@@ -230,12 +245,14 @@ func (s *discoveryService) ClearUnpinned(ctx context.Context) (int, error) {
 
 	scans := s.history.GetScans()
 	removed := 0
+	removedIDs := make([]string, 0)
 	s.mu.Lock()
 	for _, scan := range scans {
 		if scan.Pinned {
 			continue
 		}
 		delete(s.scans, scan.ID)
+		removedIDs = append(removedIDs, scan.ID)
 		if s.graphService != nil {
 			s.graphService.SetScanRegions(scan.ID, nil)
 		}
@@ -243,6 +260,11 @@ func (s *discoveryService) ClearUnpinned(ctx context.Context) (int, error) {
 	s.mu.Unlock()
 
 	removed = s.history.RemoveUnpinned()
+	if s.positions != nil {
+		for _, scanID := range removedIDs {
+			s.positions.Delete(scanID)
+		}
+	}
 	s.logger.Info("cleared unpinned scans", "removed", removed)
 	return removed, nil
 }
@@ -275,4 +297,19 @@ func (s *discoveryService) ListResources(ctx context.Context, scanID, category, 
 
 func generateScanID() string {
 	return "scan-" + time.Now().Format("20060102150405")
+}
+
+func (s *discoveryService) SetScanPositions(ctx context.Context, scanID string, data PositionData) error {
+	if s.positions == nil {
+		return nil
+	}
+	s.positions.Save(scanID, data)
+	return nil
+}
+
+func (s *discoveryService) GetScanPositions(ctx context.Context, scanID string) (PositionData, bool) {
+	if s.positions == nil {
+		return PositionData{}, false
+	}
+	return s.positions.Get(scanID)
 }

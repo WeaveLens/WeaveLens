@@ -22,8 +22,9 @@ vendor/
 # Local cache directories
 .cache/
 
-# Scan history data
-.scans.json
+# Runtime scan history and graph layout data
+/data/scans.json
+/data/positions.json
 
 # IDE files
 .idea/

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Resource, Relationship } from '../types'
-import { getGraph, getResource, getRelationships } from '../api/client'
+import { getGraph, getResource, getRelationships, getScanPositions, setScanPositions } from '../api/client'
 import { useQuery } from '@tanstack/vue-query'
 
 export type LayoutMode = 'tiers' | 'concentric' | 'force' | 'none'
@@ -35,6 +35,9 @@ export const useGraphStore = defineStore('graph', () => {
   const layoutMode = ref<LayoutMode>('tiers')
   const layoutLocked = ref(false)
   const pinnedPositions = ref<Record<string, { x: number; y: number }>>({})
+
+  const scanLayouts = ref<Record<string, { mode: LayoutMode; locked: boolean; positions: Record<string, { x: number; y: number }>; viewport: { zoom: number; pan: { x: number; y: number } } }>>({})
+  const currentScanId = ref<string | null>(null)
 
   interface FilterRule {
     id: string
@@ -263,7 +266,72 @@ export const useGraphStore = defineStore('graph', () => {
     edges.value = []
     selectedResource.value = null
     error.value = null
-    pinnedPositions.value = {}
+  }
+
+  function saveLayout(scanId: string) {
+    scanLayouts.value[scanId] = {
+      mode: layoutMode.value,
+      locked: layoutLocked.value,
+      positions: { ...pinnedPositions.value },
+      viewport: scanLayouts.value[scanId]?.viewport,
+    }
+  }
+
+  function saveViewport(scanId: string, zoom: number, pan: { x: number; y: number }) {
+    const existing = scanLayouts.value[scanId]
+    scanLayouts.value[scanId] = {
+      mode: existing?.mode ?? layoutMode.value,
+      locked: existing?.locked ?? layoutLocked.value,
+      positions: existing?.positions ?? { ...pinnedPositions.value },
+      viewport: { zoom, pan },
+    }
+  }
+
+  async function loadPositionsFromBackend(scanId: string) {
+    try {
+      const data = await getScanPositions(scanId)
+      const positions = data.positions ?? {}
+      if (Object.keys(positions).length > 0 || data.viewport) {
+        pinnedPositions.value = positions
+        const existing = scanLayouts.value[scanId]
+        scanLayouts.value[scanId] = {
+          mode: existing?.mode ?? layoutMode.value,
+          locked: existing?.locked ?? layoutLocked.value,
+          positions,
+          viewport: data.viewport ?? existing?.viewport,
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  async function savePositionsToBackend(scanId: string) {
+    if (!scanId) return
+    const existing = scanLayouts.value[scanId]
+    try {
+      await setScanPositions(scanId, { ...pinnedPositions.value }, existing?.viewport)
+    } catch {
+      // ignore
+    }
+  }
+
+  function restoreLayout(scanId: string, defaults?: { mode?: LayoutMode; locked?: boolean }) {
+    currentScanId.value = scanId
+    const saved = scanLayouts.value[scanId]
+    if (saved) {
+      layoutMode.value = saved.mode
+      layoutLocked.value = saved.locked
+      pinnedPositions.value = { ...saved.positions }
+    } else {
+      layoutMode.value = defaults?.mode ?? 'tiers'
+      layoutLocked.value = defaults?.locked ?? false
+      pinnedPositions.value = {}
+    }
+  }
+
+  function getSavedViewport(scanId: string) {
+    return scanLayouts.value[scanId]?.viewport
   }
 
   function setLayoutMode(mode: LayoutMode) {
@@ -298,6 +366,8 @@ export const useGraphStore = defineStore('graph', () => {
     layoutMode,
     layoutLocked,
     pinnedPositions,
+    currentScanId,
+    scanLayouts,
     categories,
     regions,
     types,
@@ -323,6 +393,12 @@ export const useGraphStore = defineStore('graph', () => {
     clearFilterRules,
     clearSelection,
     clearGraph,
+    saveLayout,
+    restoreLayout,
+    getSavedViewport,
+    saveViewport,
+    loadPositionsFromBackend,
+    savePositionsToBackend,
     setLayoutMode,
     setLayoutLocked,
     setPinnedPositions,

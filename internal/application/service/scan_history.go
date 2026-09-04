@@ -11,7 +11,7 @@ import (
 
 const (
 	maxSavedScans = 20
-	historyFile   = ".scans.json"
+	historyFile   = "data/scans.json"
 )
 
 type ScanHistoryEntry struct {
@@ -23,6 +23,7 @@ type ScanHistoryEntry struct {
 	EdgeCount int       `json:"edgeCount"`
 	Pinned    bool      `json:"pinned,omitempty"`
 	Locked    bool      `json:"locked,omitempty"`
+	Layout    string    `json:"layout,omitempty"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
@@ -213,6 +214,25 @@ func (h *ScanHistory) SetScanLocked(scanID string, locked bool) bool {
 	return false
 }
 
+func (h *ScanHistory) SetScanLayout(scanID string, layout string) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	for i, scan := range h.data.Scans {
+		if scan.ID == scanID {
+			if h.data.Scans[i].Layout == layout {
+				return true
+			}
+			h.data.Scans[i].Layout = layout
+			h.data.Scans[i].UpdatedAt = time.Now().UTC()
+			h.save()
+			h.signalChange()
+			return true
+		}
+	}
+	return false
+}
+
 func (h *ScanHistory) SetScanPinned(scanID string, pinned bool) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -313,6 +333,9 @@ func (h *ScanHistory) load() {
 func (h *ScanHistory) save() {
 	data, err := json.MarshalIndent(h.data, "", "  ")
 	if err != nil {
+		return
+	}
+	if err := os.MkdirAll(filepath.Dir(h.filePath), 0755); err != nil {
 		return
 	}
 	_ = os.WriteFile(h.filePath, data, 0644)

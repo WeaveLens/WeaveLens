@@ -58,6 +58,43 @@ export async function setScanLocked(scanId: string, locked: boolean): Promise<vo
   }
 }
 
+export async function setScanLayout(scanId: string, layout: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/scans/${encodeURIComponent(scanId)}/layout`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ layout }),
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Unknown error' }))
+    throw new Error((error as { message: string }).message)
+  }
+}
+
+export interface ScanPositionData {
+  positions: Record<string, { x: number; y: number }>
+  viewport?: { zoom: number; pan: { x: number; y: number } }
+}
+
+export async function getScanPositions(scanId: string): Promise<ScanPositionData> {
+  const response = await fetch(`${API_BASE}/scans/${encodeURIComponent(scanId)}/positions`)
+  if (!response.ok) {
+    return { positions: {} }
+  }
+  return response.json().catch(() => ({ positions: {} }))
+}
+
+export async function setScanPositions(scanId: string, positions: Record<string, { x: number; y: number }>, viewport?: { zoom: number; pan: { x: number; y: number } }): Promise<void> {
+  const response = await fetch(`${API_BASE}/scans/${encodeURIComponent(scanId)}/positions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ positions, viewport }),
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Unknown error' }))
+    throw new Error((error as { message: string }).message)
+  }
+}
+
 export async function clearUnpinnedScans(): Promise<number> {
   const response = await fetch(`${API_BASE}/scans/clear-unpinned`, {
     method: 'POST',
@@ -118,7 +155,7 @@ class ScanStreamManager {
     if (this.listeners.size === 1) {
       this.connect()
     } else {
-      getScans().then((scans) => this.notify(scans)).catch(() => {})
+      getScans().then((scans) => this.notify(scans)).catch(() => { })
     }
 
     return () => {

@@ -9,12 +9,16 @@ type DiscoveryService interface {
 	DeleteScan(ctx context.Context, scanID string) (bool, error)
 	SetScanPinned(ctx context.Context, scanID string, pinned bool) (bool, error)
 	SetScanLocked(ctx context.Context, scanID string, locked bool) (bool, error)
+	SetScanLayout(ctx context.Context, scanID string, layout string) (bool, error)
+	SetScanPositions(ctx context.Context, scanID string, data PositionData) error
+	GetScanPositions(ctx context.Context, scanID string) (PositionData, bool)
 	ClearUnpinned(ctx context.Context) (int, error)
 	ListResources(ctx context.Context, scanID, category, resourceType string) ([]Resource, error)
 	CompleteScan(ctx context.Context, scanID string, nodeCount, edgeCount int) error
 	SetGraphService(gs GraphService)
 	SetHistory(h *ScanHistory)
 	GetScans() []ScanHistoryEntry
+	SetPositions(ps *PositionsStore)
 }
 
 type GraphService interface {

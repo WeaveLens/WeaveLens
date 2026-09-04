@@ -4,6 +4,7 @@ import cytoscape, { type Core, type EventObject } from 'cytoscape'
 import { useGraphStore } from '../stores/graph'
 import { useScanStore } from '../stores/scan'
 import { useSettingsStore } from '../stores/settings'
+import { setScanLayout } from '../api/client'
 import { tierOf, type LayoutMode } from '../stores/graph'
 
 const graphStore = useGraphStore()
@@ -119,6 +120,7 @@ function openValueDropdown() {
 }
 
 let cy: Core | null = null
+let renderedScanId: string | null = null
 
 function toggleRegion(region: string) {
   const current = graphStore.regionFilter
@@ -249,6 +251,35 @@ function initCy() {
     const node = e.target
     const pos = node.position()
     graphStore.pinPosition(node.id(), pos.x, pos.y)
+    const scanId = graphStore.currentScanId
+    if (scanId) graphStore.saveLayout(scanId)
+  })
+
+  cy.on('layoutstop', () => {
+    const scanId = graphStore.currentScanId
+    if (scanId && cy) {
+      if (cy.nodes().length > 0) {
+        const positions: Record<string, { x: number; y: number }> = {}
+        cy.nodes().forEach(node => {
+          const pos = node.position()
+          positions[node.id()] = { x: pos.x, y: pos.y }
+        })
+        graphStore.setPinnedPositions(positions)
+        graphStore.saveLayout(scanId)
+        if (graphStore.layoutLocked) {
+          lockAllNodes()
+        }
+      }
+      graphStore.saveViewport(scanId, cy.zoom(), { x: cy.pan().x, y: cy.pan().y })
+      graphStore.savePositionsToBackend(scanId).catch(() => {})
+    }
+  })
+
+  cy.on('viewport', () => {
+    const scanId = graphStore.currentScanId
+    if (scanId && cy) {
+      graphStore.saveViewport(scanId, cy.zoom(), { x: cy.pan().x, y: cy.pan().y })
+    }
   })
 }
 
@@ -258,13 +289,22 @@ function fitGraph() {
   }
 }
 
+function fitAfterScanLoad(scanId: string | null) {
+  if (!cy || !scanId || renderedScanId === scanId || cy.nodes().length === 0) return
+  renderedScanId = scanId
+  requestAnimationFrame(() => {
+    if (cy && graphStore.currentScanId === scanId && cy.nodes().length > 0) {
+      cy.fit(undefined, 40)
+    }
+  })
+}
+
 function onToggleLock() {
   const wasLocked = graphStore.layoutLocked
   const nextLocked = !wasLocked
   graphStore.setLayoutLocked(nextLocked)
   if (wasLocked) {
     releaseAllNodes()
-    clearStoredPositions()
   } else {
     lockAllNodes()
   }
@@ -276,9 +316,9 @@ function onToggleLock() {
         lockAllNodes()
       } else {
         releaseAllNodes()
-        clearStoredPositions()
       }
     })
+    graphStore.savePositionsToBackend(scanId).catch(() => {})
   }
 }
 
@@ -300,7 +340,8 @@ function buildLayoutConfig(mode: LayoutMode) {
       directed: false,
       fit: true,
       padding: 40,
-      spacingFactor: 1.4,
+      spacingFactor: 1,
+      idealEdgeLength: () => 100,
       avoidOverlap: true,
       transform: (_node: unknown, pos: { x: number; y: number }) => ({ x: pos.y, y: pos.x }),
     }
@@ -345,6 +386,25 @@ function applyPinnedPositions() {
   })
 }
 
+function applySavedPositions() {
+  const instance = cy
+  if (!instance) return
+  const positions = graphStore.pinnedPositions
+  if (!positions || Object.keys(positions).length === 0) return
+  instance.batch(() => {
+    instance.nodes().forEach(node => {
+      const position = positions[node.id()]
+      if (!position) return
+      node.position(position)
+      if (graphStore.layoutLocked) {
+        node.lock()
+      } else {
+        node.unlock()
+      }
+    })
+  })
+}
+
 function releaseAllNodes() {
   if (!cy) return
   const instance = cy
@@ -368,42 +428,6 @@ function lockAllNodes() {
     })
   })
   graphStore.setPinnedPositions(positions)
-  persistPositions()
-}
-
-function persistPositions() {
-  const scanId = scanStore.currentScan?.id
-  if (!scanId) return
-  try {
-    const key = `weavelens.positions.${scanId}`
-    localStorage.setItem(key, JSON.stringify(graphStore.pinnedPositions))
-  } catch {
-    // ignore quota/serialization errors
-  }
-}
-
-function loadStoredPositions() {
-  const scanId = scanStore.currentScan?.id
-  if (!scanId) return
-  try {
-    const key = `weavelens.positions.${scanId}`
-    const raw = localStorage.getItem(key)
-    if (!raw) return
-    const parsed = JSON.parse(raw) as Record<string, { x: number; y: number }>
-    graphStore.setPinnedPositions(parsed)
-  } catch {
-    // ignore parse errors
-  }
-}
-
-function clearStoredPositions() {
-  const scanId = scanStore.currentScan?.id
-  if (!scanId) return
-  try {
-    localStorage.removeItem(`weavelens.positions.${scanId}`)
-  } catch {
-    // ignore
-  }
 }
 
 function runLayout(mode: LayoutMode, opts: { lock: boolean } = { lock: false }) {
@@ -419,8 +443,20 @@ function runLayout(mode: LayoutMode, opts: { lock: boolean } = { lock: false }) 
 watch(elements, () => {
   if (!cy) return
   cy.json({ elements: elements.value })
+  const scanId = graphStore.currentScanId
   if (graphStore.layoutLocked) {
-    applyPinnedPositions()
+    if (Object.keys(graphStore.pinnedPositions).length > 0) {
+      applyPinnedPositions()
+    } else {
+      releaseAllNodes()
+      runLayout(graphStore.layoutMode, { lock: false })
+    }
+    fitAfterScanLoad(scanId)
+    return
+  }
+  if (graphStore.pinnedPositions && Object.keys(graphStore.pinnedPositions).length > 0) {
+    applySavedPositions()
+    fitAfterScanLoad(scanId)
     return
   }
   releaseAllNodes()
@@ -432,25 +468,14 @@ watch(
   ([mode, locked], [prevMode]) => {
     if (!cy) return
     if (mode !== prevMode) {
-      if (!locked) {
-        releaseAllNodes()
+      if (locked) {
+        applyPinnedPositions()
+        return
       }
-      runLayout(mode as LayoutMode, { lock: locked as boolean })
+      releaseAllNodes()
+      runLayout(mode as LayoutMode, { lock: false })
     }
   }
-)
-
-watch(
-  () => scanStore.currentScan?.id,
-  (id) => {
-    if (!id) return
-    const scan = scanStore.scans.find(s => s.id === id)
-    loadStoredPositions()
-    if (scan && scan.locked !== graphStore.layoutLocked) {
-      graphStore.setLayoutLocked(!!scan.locked)
-    }
-  },
-  { immediate: true }
 )
 
 let resizeObserver: ResizeObserver | null = null
@@ -480,7 +505,9 @@ onMounted(() => {
     resizeObserver = new ResizeObserver(() => {
       if (cy) {
         cy.resize()
-        cy.fit(undefined, 40)
+        if (!graphStore.layoutLocked) {
+          cy.fit(undefined, 40)
+        }
       }
     })
     resizeObserver.observe(containerRef.value)
@@ -510,7 +537,16 @@ defineExpose({ fitGraph })
           id="layout-mode-select"
           class="control-select"
           :value="graphStore.layoutMode"
-          @change="(e) => graphStore.setLayoutMode((e.target as HTMLSelectElement).value as LayoutMode)"
+          :disabled="graphStore.layoutLocked"
+          @change="(e) => {
+            const mode = (e.target as HTMLSelectElement).value as LayoutMode
+            graphStore.setLayoutMode(mode)
+            const scanId = scanStore.currentScan?.id
+            if (scanId) {
+              setScanLayout(scanId, mode).catch(() => {})
+              graphStore.savePositionsToBackend(scanId).catch(() => {})
+            }
+          }"
         >
           <option value="tiers">Tiers (by category)</option>
           <option value="concentric">Concentric (by category)</option>

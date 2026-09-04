@@ -11,6 +11,7 @@ import SearchBar from './SearchBar.vue'
 import CloudConnection from './CloudConnection.vue'
 import SettingsDropdown from './SettingsDropdown.vue'
 import { subscribeScans } from '../api/client'
+import type { LayoutMode } from '../stores/graph'
 
 const scanStore = useScanStore()
 const graphStore = useGraphStore()
@@ -38,11 +39,21 @@ onUnmounted(() => {
 
 watch(() => scanStore.currentScan?.id, async (scanId) => {
   if (scanId) {
+    const prevId = graphStore.currentScanId
+    if (prevId && prevId !== scanId) {
+      graphStore.saveLayout(prevId)
+      graphStore.savePositionsToBackend(prevId).catch(() => {})
+    }
     graphStore.clearGraph()
+    graphStore.restoreLayout(scanId, {
+      mode: scanStore.currentScan?.layout as LayoutMode | undefined,
+      locked: scanStore.currentScan?.locked,
+    })
+    await graphStore.loadPositionsFromBackend(scanId)
     await graphStore.loadGraph(scanId)
     await scanStore.refreshStatus(scanId)
   }
-})
+}, { immediate: true })
 </script>
 
 <template>

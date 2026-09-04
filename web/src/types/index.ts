@@ -28,6 +28,7 @@ export interface Scan {
   updatedAt: string
   pinned?: boolean
   locked?: boolean
+  layout?: string
 }
 
 export interface ScanConfig {
