@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Scan, ScanConfig } from '../types'
-import { startScan, getScanStatus, getScans, deleteScan, setScanPinned, clearUnpinnedScans } from '../api/client'
+import { startScan, getScanStatus, getScans, deleteScan, setScanPinned, setScanLocked, clearUnpinnedScans } from '../api/client'
 
 export const useScanStore = defineStore('scan', () => {
   const scans = ref<Scan[]>([])
@@ -58,7 +58,7 @@ export const useScanStore = defineStore('scan', () => {
     try {
       const scan = await getScanStatus(scanId)
       const existing = scans.value.find(s => s.id === scanId)
-      const enriched: Scan = { ...scan, pinned: existing?.pinned ?? scan.pinned ?? false }
+      const enriched: Scan = { ...scan, pinned: existing?.pinned ?? scan.pinned ?? false, locked: existing?.locked ?? scan.locked ?? false }
       const idx = scans.value.findIndex(s => s.id === scanId)
       if (idx >= 0) {
         scans.value[idx] = enriched
@@ -108,6 +108,27 @@ export const useScanStore = defineStore('scan', () => {
     }
   }
 
+  async function toggleLocked(scanId: string, locked: boolean) {
+    const scan = scans.value.find(s => s.id === scanId)
+    const prev = scan?.locked ?? false
+    if (scan) {
+      scan.locked = locked
+    }
+    if (currentScan.value?.id === scanId) {
+      currentScan.value = { ...currentScan.value, locked }
+    }
+    try {
+      await setScanLocked(scanId, locked)
+    } catch (e) {
+      if (scan) scan.locked = prev
+      if (currentScan.value?.id === scanId) {
+        currentScan.value = { ...currentScan.value, locked: prev }
+      }
+      error.value = e instanceof Error ? e.message : 'Failed to set locked state'
+      throw e
+    }
+  }
+
   async function clearUnpinned() {
     try {
       const removed = await clearUnpinnedScans()
@@ -145,6 +166,7 @@ export const useScanStore = defineStore('scan', () => {
     selectScan,
     removeScan,
     togglePin,
+    toggleLocked,
     clearUnpinned,
     clearError,
   }

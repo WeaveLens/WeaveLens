@@ -46,6 +46,18 @@ export async function setScanPinned(scanId: string, pinned: boolean): Promise<vo
   }
 }
 
+export async function setScanLocked(scanId: string, locked: boolean): Promise<void> {
+  const response = await fetch(`${API_BASE}/scans/${encodeURIComponent(scanId)}/lock`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ locked }),
+  })
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Unknown error' }))
+    throw new Error((error as { message: string }).message)
+  }
+}
+
 export async function clearUnpinnedScans(): Promise<number> {
   const response = await fetch(`${API_BASE}/scans/clear-unpinned`, {
     method: 'POST',

@@ -25,6 +25,10 @@ func (f *fakeDiscoveryService) SetScanPinned(ctx context.Context, scanID string,
 	return true, nil
 }
 
+func (f *fakeDiscoveryService) SetScanLocked(ctx context.Context, scanID string, locked bool) (bool, error) {
+	return true, nil
+}
+
 func (f *fakeDiscoveryService) ClearUnpinned(ctx context.Context) (int, error) {
 	return 0, nil
 }

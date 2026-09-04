@@ -2,10 +2,12 @@
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import cytoscape, { type Core, type EventObject } from 'cytoscape'
 import { useGraphStore } from '../stores/graph'
+import { useScanStore } from '../stores/scan'
 import { getCategoryColor } from '../config/categories'
 import { tierOf, type LayoutMode } from '../stores/graph'
 
 const graphStore = useGraphStore()
+const scanStore = useScanStore()
 const containerRef = ref<HTMLDivElement | null>(null)
 const regionFilterRef = ref<HTMLElement | null>(null)
 const typeFilterRef = ref<HTMLElement | null>(null)
@@ -255,6 +257,38 @@ function fitGraph() {
   }
 }
 
+function onToggleLock() {
+  const wasLocked = graphStore.layoutLocked
+  const nextLocked = !wasLocked
+  graphStore.setLayoutLocked(nextLocked)
+  if (wasLocked) {
+    releaseAllNodes()
+    clearStoredPositions()
+  } else {
+    lockAllNodes()
+  }
+  const scanId = scanStore.currentScan?.id
+  if (scanId) {
+    scanStore.toggleLocked(scanId, nextLocked).catch(() => {
+      graphStore.setLayoutLocked(wasLocked)
+      if (wasLocked) {
+        lockAllNodes()
+      } else {
+        releaseAllNodes()
+        clearStoredPositions()
+      }
+    })
+  }
+}
+
+function onRelayout() {
+  if (graphStore.layoutLocked) {
+    releaseAllNodes()
+  } else {
+    runLayout(graphStore.layoutMode, { lock: false })
+  }
+}
+
 function buildLayoutConfig(mode: LayoutMode) {
   if (mode === 'none') {
     return { name: 'preset', fit: true, padding: 40 }
@@ -310,6 +344,67 @@ function applyPinnedPositions() {
   })
 }
 
+function releaseAllNodes() {
+  if (!cy) return
+  const instance = cy
+  instance.batch(() => {
+    instance.nodes().forEach((n) => {
+      n.unlock()
+      return undefined
+    })
+  })
+}
+
+function lockAllNodes() {
+  if (!cy) return
+  const instance = cy
+  const positions: Record<string, { x: number; y: number }> = {}
+  instance.batch(() => {
+    instance.nodes().forEach((n) => {
+      const p = n.position()
+      positions[n.id()] = { x: p.x, y: p.y }
+      n.lock()
+    })
+  })
+  graphStore.setPinnedPositions(positions)
+  persistPositions()
+}
+
+function persistPositions() {
+  const scanId = scanStore.currentScan?.id
+  if (!scanId) return
+  try {
+    const key = `weavelens.positions.${scanId}`
+    localStorage.setItem(key, JSON.stringify(graphStore.pinnedPositions))
+  } catch {
+    // ignore quota/serialization errors
+  }
+}
+
+function loadStoredPositions() {
+  const scanId = scanStore.currentScan?.id
+  if (!scanId) return
+  try {
+    const key = `weavelens.positions.${scanId}`
+    const raw = localStorage.getItem(key)
+    if (!raw) return
+    const parsed = JSON.parse(raw) as Record<string, { x: number; y: number }>
+    graphStore.setPinnedPositions(parsed)
+  } catch {
+    // ignore parse errors
+  }
+}
+
+function clearStoredPositions() {
+  const scanId = scanStore.currentScan?.id
+  if (!scanId) return
+  try {
+    localStorage.removeItem(`weavelens.positions.${scanId}`)
+  } catch {
+    // ignore
+  }
+}
+
 function runLayout(mode: LayoutMode, opts: { lock: boolean } = { lock: false }) {
   if (!cy) return
   if (mode === 'none' || opts.lock) {
@@ -327,18 +422,56 @@ watch(elements, () => {
     applyPinnedPositions()
     return
   }
+  releaseAllNodes()
   runLayout(graphStore.layoutMode, { lock: false })
 })
 
 watch(
   () => [graphStore.layoutMode, graphStore.layoutLocked],
-  ([mode, locked]) => {
+  ([mode, locked], [prevMode]) => {
     if (!cy) return
-    runLayout(mode as LayoutMode, { lock: locked as boolean })
+    if (mode !== prevMode) {
+      if (!locked) {
+        releaseAllNodes()
+      }
+      runLayout(mode as LayoutMode, { lock: locked as boolean })
+    }
   }
 )
 
+watch(
+  () => scanStore.currentScan?.id,
+  (id) => {
+    if (!id) return
+    const scan = scanStore.scans.find(s => s.id === id)
+    loadStoredPositions()
+    if (scan && scan.locked !== graphStore.layoutLocked) {
+      graphStore.setLayoutLocked(!!scan.locked)
+    }
+  },
+  { immediate: true }
+)
+
 let resizeObserver: ResizeObserver | null = null
+
+function onKeydown(e: KeyboardEvent) {
+  const target = e.target as HTMLElement | null
+  if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+    return
+  }
+  const key = e.key.toLowerCase()
+  if (key === 'l') {
+    e.preventDefault()
+    onToggleLock()
+  } else if (key === 'f') {
+    e.preventDefault()
+    fitGraph()
+  } else if (key === 'r') {
+    if (graphStore.layoutLocked) return
+    e.preventDefault()
+    onRelayout()
+  }
+}
 
 onMounted(() => {
   initCy()
@@ -351,12 +484,14 @@ onMounted(() => {
     })
     resizeObserver.observe(containerRef.value)
   }
+  window.addEventListener('keydown', onKeydown)
 })
 
 onUnmounted(() => {
   if (resizeObserver) {
     resizeObserver.disconnect()
   }
+  window.removeEventListener('keydown', onKeydown)
   if (cy) {
     cy.destroy()
   }
@@ -384,20 +519,21 @@ defineExpose({ fitGraph })
         <button
           class="control-btn"
           :class="{ active: graphStore.layoutLocked }"
-          :title="graphStore.layoutLocked ? 'Unlock layout (re-run auto layout on updates)' : 'Lock layout (keep positions on updates)'"
-          @click="graphStore.setLayoutLocked(!graphStore.layoutLocked)"
+          :title="graphStore.layoutLocked ? 'Unlock (L)' : 'Lock layout (L)'"
+          @click="onToggleLock"
         >
           {{ graphStore.layoutLocked ? '🔒 Locked' : '🔓 Unlock' }}
         </button>
       </div>
       <div class="graph-controls-group">
-        <button @click="fitGraph" class="control-btn" title="Fit to screen">
+        <button @click="fitGraph" class="control-btn" title="Fit to screen (F)">
           Fit
         </button>
         <button
           class="control-btn"
-          title="Rerun current layout"
-          @click="runLayout(graphStore.layoutMode, { lock: graphStore.layoutLocked }); graphStore.setLayoutLocked(false)"
+          :disabled="graphStore.layoutLocked"
+          :title="graphStore.layoutLocked ? 'Unlock first to rerun layout (L)' : 'Rerun current layout (R)'"
+          @click="onRelayout"
         >
           Relayout
         </button>
@@ -606,6 +742,16 @@ defineExpose({ fitGraph })
 
 .control-btn:hover {
   background: #e0e0e0;
+}
+
+.control-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f5f5f5;
+}
+
+.control-btn:disabled:hover {
+  background: #f5f5f5;
 }
 
 .control-btn.active {

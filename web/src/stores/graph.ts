@@ -273,9 +273,10 @@ export const useGraphStore = defineStore('graph', () => {
 
   function setLayoutLocked(locked: boolean) {
     layoutLocked.value = locked
-    if (!locked) {
-      pinnedPositions.value = {}
-    }
+  }
+
+  function setPinnedPositions(positions: Record<string, { x: number; y: number }>) {
+    pinnedPositions.value = positions
   }
 
   function pinPosition(id: string, x: number, y: number) {
@@ -324,6 +325,7 @@ export const useGraphStore = defineStore('graph', () => {
     clearGraph,
     setLayoutMode,
     setLayoutLocked,
+    setPinnedPositions,
     pinPosition,
   }
 })

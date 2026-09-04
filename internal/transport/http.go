@@ -341,6 +341,27 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 		writeJSON(w, http.StatusOK, map[string]any{"id": scanID, "pinned": req.Pinned})
 	})
 
+	mux.HandleFunc("POST /api/scans/{scanId}/lock", func(w http.ResponseWriter, r *http.Request) {
+		scanID := r.PathValue("scanId")
+		var req struct {
+			Locked bool `json:"locked"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+		ok, err := discovery.SetScanLocked(r.Context(), scanID, req.Locked)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "Failed to set locked state")
+			return
+		}
+		if !ok {
+			writeError(w, http.StatusNotFound, "Scan not found")
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"id": scanID, "locked": req.Locked})
+	})
+
 	mux.HandleFunc("POST /api/scans/clear-unpinned", func(w http.ResponseWriter, r *http.Request) {
 		removed, err := discovery.ClearUnpinned(r.Context())
 		if err != nil {

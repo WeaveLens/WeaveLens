@@ -22,6 +22,7 @@ type ScanHistoryEntry struct {
 	NodeCount int       `json:"nodeCount"`
 	EdgeCount int       `json:"edgeCount"`
 	Pinned    bool      `json:"pinned,omitempty"`
+	Locked    bool      `json:"locked,omitempty"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
@@ -191,6 +192,25 @@ func (h *ScanHistory) RemoveUnpinned() int {
 		h.signalChange()
 	}
 	return removed
+}
+
+func (h *ScanHistory) SetScanLocked(scanID string, locked bool) bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	for i, scan := range h.data.Scans {
+		if scan.ID == scanID {
+			if h.data.Scans[i].Locked == locked {
+				return true
+			}
+			h.data.Scans[i].Locked = locked
+			h.data.Scans[i].UpdatedAt = time.Now().UTC()
+			h.save()
+			h.signalChange()
+			return true
+		}
+	}
+	return false
 }
 
 func (h *ScanHistory) SetScanPinned(scanID string, pinned bool) bool {

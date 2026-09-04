@@ -216,6 +216,13 @@ func (s *discoveryService) SetScanPinned(ctx context.Context, scanID string, pin
 	return s.history.SetScanPinned(scanID, pinned), nil
 }
 
+func (s *discoveryService) SetScanLocked(ctx context.Context, scanID string, locked bool) (bool, error) {
+	if s.history == nil {
+		return false, nil
+	}
+	return s.history.SetScanLocked(scanID, locked), nil
+}
+
 func (s *discoveryService) ClearUnpinned(ctx context.Context) (int, error) {
 	if s.history == nil {
 		return 0, nil
