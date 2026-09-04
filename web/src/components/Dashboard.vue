@@ -103,7 +103,7 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 24px;
+  padding: 0.75rem 1.5rem;
   background: var(--app-header-bg);
   color: var(--app-header-text);
   box-shadow: 0 2px 4px var(--color-shadow-soft);
@@ -114,24 +114,24 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
 .header-left {
   display: flex;
   align-items: baseline;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 .app-header h1 {
   margin: 0;
-  font-size: calc(22px * var(--app-font-scale));
+  font-size: calc(1.375rem * var(--app-font-scale));
   font-weight: 600;
 }
 
 .header-subtitle {
-  font-size: calc(13px * var(--app-font-scale));
+  font-size: calc(0.8125rem * var(--app-font-scale));
   opacity: 0.8;
   font-weight: 400;
 }
 
 .header-actions {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
   align-items: center;
 }
 
@@ -139,14 +139,14 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
 .header-link {
   width: 120px;
   flex: 0 0 120px;
-  min-height: 36px;
+  min-height: 2.25rem;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 16px;
+  padding: 0.5rem 1rem;
   margin: 0;
-  line-height: 18px;
+  line-height: 1.125rem;
   font-family: inherit;
   appearance: none;
   background: var(--color-overlay-white-15);
@@ -154,7 +154,7 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
   color: var(--color-white);
   border-radius: 6px;
   cursor: pointer;
-  font-size: calc(13px * var(--app-font-scale));
+  font-size: calc(0.8125rem * var(--app-font-scale));
   transition: background 0.2s;
 }
 

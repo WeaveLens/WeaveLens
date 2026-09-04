@@ -76,7 +76,7 @@
   --color-shadow-medium: rgba(0, 0, 0, 0.15);
   --color-shadow-strong: rgba(0, 0, 0, 0.18);
 
-  font: 18px/145% var(--sans);
+  font: 1rem/1.45 var(--sans);
   letter-spacing: 0.18px;
   color-scheme: light dark;
   color: var(--text);
@@ -86,14 +86,11 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  @media (max-width: 1024px) {
-    font-size: calc(16px * var(--app-font-scale));
-  }
 }
 
 body,
 #app {
-  font-size: calc(14px * var(--app-font-scale));
+  font-size: calc(0.875rem * var(--app-font-scale));
 }
 
 @media (prefers-color-scheme: dark) {
@@ -138,24 +135,24 @@ h2 {
 }
 
 h1 {
-  font-size: 56px;
+  font-size: 3.5rem;
   letter-spacing: -1.68px;
   margin: 32px 0;
 
   @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+    font-size: 2.25rem;
+    margin: 1.25rem 0;
   }
 }
 
 h2 {
-  font-size: 24px;
+  font-size: 1.5rem;
   line-height: 118%;
   letter-spacing: -0.24px;
   margin: 0 0 8px;
 
   @media (max-width: 1024px) {
-    font-size: 20px;
+    font-size: 1.25rem;
   }
 }
 
@@ -172,7 +169,7 @@ code,
 }
 
 code {
-  font-size: 15px;
+  font-size: 0.9375rem;
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);

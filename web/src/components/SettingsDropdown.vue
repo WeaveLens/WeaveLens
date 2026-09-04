@@ -140,14 +140,14 @@ const shortcuts: { keys: string; desc: string }[] = [
 .header-btn {
   width: 120px;
   flex: 0 0 120px;
-  min-height: 36px;
+  min-height: 2.25rem;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 16px;
+  padding: 0.5rem 1rem;
   margin: 0;
-  line-height: 18px;
+  line-height: 1.125rem;
   font-family: inherit;
   appearance: none;
   background: var(--color-overlay-white-15);
@@ -155,7 +155,7 @@ const shortcuts: { keys: string; desc: string }[] = [
   color: var(--app-header-text);
   border-radius: 6px;
   cursor: pointer;
-  font-size: calc(13px * var(--app-font-scale));
+  font-size: calc(0.8125rem * var(--app-font-scale));
   transition: background 0.2s;
 }
 

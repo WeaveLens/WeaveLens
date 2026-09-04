@@ -193,6 +193,29 @@ function initCy() {
           'border-color': settingsStore.currentTheme().system.status.success,
         },
       },
+      {
+        selector: '.focus-node',
+        style: {
+          'border-width': 3,
+          'border-color': settingsStore.currentTheme().system.accent,
+          opacity: 1,
+        },
+      },
+      {
+        selector: '.focus-edge',
+        style: {
+          width: 4,
+          'line-color': settingsStore.currentTheme().system.accent,
+          'target-arrow-color': settingsStore.currentTheme().system.accent,
+          opacity: 1,
+        },
+      },
+      {
+        selector: '.dimmed',
+        style: {
+          opacity: 0.18,
+        },
+      },
     ],
     layout: buildLayoutConfig(graphStore.layoutMode) as cytoscape.LayoutOptions,
     minZoom: 0.1,
@@ -206,12 +229,14 @@ function initCy() {
     const nodeData = graphStore.nodes.find(n => n.id === resourceId)
     if (nodeData) {
       graphStore.selectResource(nodeData)
+      highlightNeighborhood(node)
     }
   })
 
   cy.on('tap', (e: EventObject) => {
     if (e.target === cy) {
       graphStore.clearSelection()
+      clearNeighborhoodHighlight()
     }
   })
 
@@ -251,6 +276,19 @@ function initCy() {
   })
 }
 
+function highlightNeighborhood(node: cytoscape.NodeSingular) {
+  if (!cy) return
+  cy.elements().removeClass('focus-node focus-edge dimmed')
+  node.addClass('focus-node')
+  node.neighborhood('node').addClass('focus-node')
+  node.connectedEdges().addClass('focus-edge')
+  cy.elements().not(node.union(node.neighborhood())).addClass('dimmed')
+}
+
+function clearNeighborhoodHighlight() {
+  cy?.elements().removeClass('focus-node focus-edge dimmed')
+}
+
 function updateCyTheme() {
   if (!cy) return
   const colors = settingsStore.currentTheme().system
@@ -265,6 +303,10 @@ function updateCyTheme() {
     })
     .selector('node:selected')
     .style({ 'border-color': colors.accent })
+    .selector('.focus-node')
+    .style({ 'border-color': colors.accent })
+    .selector('.focus-edge')
+    .style({ 'line-color': colors.accent, 'target-arrow-color': colors.accent })
     .update()
 }
 
