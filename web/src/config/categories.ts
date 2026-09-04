@@ -41,6 +41,7 @@ export interface ThemePreset {
   description: string
   system: SystemColors
   categories: Record<string, CategoryMeta>
+  resourceTypes: Record<string, string>
 }
 
 const ICON_CIRCLE =
@@ -93,6 +94,7 @@ export const THEMES: Record<ThemeId, ThemePreset> = {
     description: 'Material Design inspired colors',
     system: light,
     categories: CATEGORY_META,
+    resourceTypes: { VPC: '#00897b' },
   },
   pastel: {
     id: 'pastel',
@@ -128,6 +130,7 @@ export const THEMES: Record<ThemeId, ThemePreset> = {
       integration: { label: 'Integration', color: '#A8D5D5' },
       other: { label: 'Other', color: '#C8C8C8' },
     }),
+    resourceTypes: { VPC: '#4f8f8a' },
   },
   monochrome: {
     id: 'monochrome',
@@ -163,6 +166,7 @@ export const THEMES: Record<ThemeId, ThemePreset> = {
       integration: { label: 'Integration', color: '#BFBFBF' },
       other: { label: 'Other', color: '#D9D9D9' },
     }),
+    resourceTypes: { VPC: '#202020' },
   },
   'high-contrast': {
     id: 'high-contrast',
@@ -198,6 +202,7 @@ export const THEMES: Record<ThemeId, ThemePreset> = {
       integration: { label: 'Integration', color: '#00bfa5' },
       other: { label: 'Other', color: '#000000' },
     }),
+    resourceTypes: { VPC: '#00b8d4' },
   },
 }
 
@@ -209,6 +214,16 @@ export function getCategoryColor(category: string, themeId: ThemeId = 'default')
   }
   const selectedTheme = THEMES[themeId] ?? THEMES.default
   return selectedTheme.categories[category]?.color ?? selectedTheme.categories.other.color
+}
+
+export function getResourceColor(type: string, category: string, themeId: ThemeId = 'default'): string {
+  const selectedTheme = THEMES[themeId] ?? THEMES.default
+  const resourceType = Object.keys(selectedTheme.resourceTypes).find(
+    key => key.toLowerCase() === type.toLowerCase()
+  )
+  return resourceType
+    ? selectedTheme.resourceTypes[resourceType]
+    : getCategoryColor(category, themeId)
 }
 
 export function getSystemColor(name: Exclude<keyof SystemColors, 'status'>, themeId: ThemeId = 'default'): string {

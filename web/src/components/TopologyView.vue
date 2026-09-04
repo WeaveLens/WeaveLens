@@ -126,7 +126,7 @@ const elements = computed(() => {
       id: node.id,
       label: node.name,
       category: node.category,
-      color: settingsStore.getColor(node.category),
+      color: settingsStore.getResourceColorForType(node.type, node.category),
       type: node.type,
       region: node.region,
       tier: tierOf(node.category),

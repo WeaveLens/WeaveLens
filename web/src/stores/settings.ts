@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import { THEMES, THEME_LIST, getCategoryColor, type ThemeId, type ThemePreset } from '../config/categories'
+import { THEMES, THEME_LIST, getCategoryColor, getResourceColor, type ThemeId, type ThemePreset } from '../config/categories'
 
 export type FontSize = 'small' | 'medium' | 'large' | 'very-large'
 
@@ -103,6 +103,10 @@ export const useSettingsStore = defineStore('settings', () => {
     return getCategoryColor(category, themeId.value)
   }
 
+  function getResourceColorForType(type: string, category: string): string {
+    return getResourceColor(type, category, themeId.value)
+  }
+
   function currentTheme(): ThemePreset {
     return THEMES[themeId.value] ?? THEMES.default
   }
@@ -127,6 +131,7 @@ export const useSettingsStore = defineStore('settings', () => {
     toggle,
     close,
     getColor,
+    getResourceColorForType,
     currentTheme,
   }
 })
