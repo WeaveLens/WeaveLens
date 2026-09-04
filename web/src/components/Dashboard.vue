@@ -104,11 +104,9 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 24px;
-  background: var(--app-header-bg, linear-gradient(135deg, #1976d2 0%, #1565c0 100%));
-  color: var(--app-header-text, #fff);
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
-  color: var(--color-white);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: var(--app-header-bg);
+  color: var(--app-header-text);
+  box-shadow: 0 2px 4px var(--color-shadow-soft);
   z-index: 10;
   flex-shrink: 0;
 }
@@ -137,11 +135,20 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
   align-items: center;
 }
 
-.header-btn {
+.header-btn,
+.header-link {
+  width: 120px;
+  flex: 0 0 120px;
+  min-height: 36px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: var(--app-header-text, #fff);
+  margin: 0;
+  line-height: 18px;
+  font-family: inherit;
+  appearance: none;
   background: var(--color-overlay-white-15);
   border: 1px solid var(--color-overlay-white-20);
   color: var(--color-white);
@@ -155,23 +162,12 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
   background: var(--color-overlay-white-25);
 }
 
-.header-link {
-  padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: var(--app-header-text, #fff);
-  background: var(--color-overlay-white-15);
-  border: 1px solid var(--color-overlay-white-20);
-  color: var(--color-white);
-  border-radius: 6px;
-  cursor: pointer;
-  text-decoration: none;
-  font-size: calc(13px * var(--app-font-scale));
-  transition: background 0.2s;
-}
-
 .header-link:hover {
   background: var(--color-overlay-white-25);
+}
+
+.header-link {
+  text-decoration: none;
 }
 
 .app-body {

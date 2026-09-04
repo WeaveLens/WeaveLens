@@ -24,6 +24,13 @@ export interface SystemColors {
   panelBg: string
   panelBorder: string
   graphBg: string
+  status: {
+    success: string
+    info: string
+    warning: string
+    error: string
+    neutral: string
+  }
 }
 
 export type ThemeId = 'default' | 'pastel' | 'monochrome' | 'high-contrast'
@@ -76,6 +83,7 @@ const light: SystemColors = {
   panelBg: '#fafafa',
   panelBorder: '#e0e0e0',
   graphBg: '#fafafa',
+  status: { success: '#4CAF50', info: '#2196F3', warning: '#FF9800', error: '#F44336', neutral: '#9E9E9E' },
 }
 
 export const THEMES: Record<ThemeId, ThemePreset> = {
@@ -109,6 +117,7 @@ export const THEMES: Record<ThemeId, ThemePreset> = {
       panelBg: '#f3f0f7',
       panelBorder: '#ddd9e6',
       graphBg: '#f4f2f7',
+      status: { success: '#6fba8b', info: '#6a8caf', warning: '#d49a68', error: '#c97979', neutral: '#8a8a9e' },
     },
     categories: withIcons({
       compute: { label: 'Compute', color: '#A8D5BA' },
@@ -143,6 +152,7 @@ export const THEMES: Record<ThemeId, ThemePreset> = {
       panelBg: '#fafafa',
       panelBorder: '#e0e0e0',
       graphBg: '#f5f5f5',
+      status: { success: '#333333', info: '#595959', warning: '#737373', error: '#1a1a1a', neutral: '#8c8c8c' },
     },
     categories: withIcons({
       compute: { label: 'Compute', color: '#2C2C2C' },
@@ -177,6 +187,7 @@ export const THEMES: Record<ThemeId, ThemePreset> = {
       panelBg: '#ffffff',
       panelBorder: '#000000',
       graphBg: '#ffffff',
+      status: { success: '#00c853', info: '#2962ff', warning: '#ff6d00', error: '#d50000', neutral: '#666666' },
     },
     categories: withIcons({
       compute: { label: 'Compute', color: '#00c853' },
@@ -200,7 +211,7 @@ export function getCategoryColor(category: string, themeId: ThemeId = 'default')
   return selectedTheme.categories[category]?.color ?? selectedTheme.categories.other.color
 }
 
-export function getSystemColor(name: keyof SystemColors, themeId: ThemeId = 'default'): string {
+export function getSystemColor(name: Exclude<keyof SystemColors, 'status'>, themeId: ThemeId = 'default'): string {
   const theme = THEMES[themeId] ?? THEMES.default
   return theme.system[name] ?? THEMES.default.system[name]
 }

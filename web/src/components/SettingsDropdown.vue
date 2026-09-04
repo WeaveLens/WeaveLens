@@ -138,10 +138,21 @@ const shortcuts: { keys: string; desc: string }[] = [
 }
 
 .header-btn {
+  width: 120px;
+  flex: 0 0 120px;
+  min-height: 36px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
+  margin: 0;
+  line-height: 18px;
+  font-family: inherit;
+  appearance: none;
+  background: var(--color-overlay-white-15);
+  border: 1px solid var(--color-overlay-white-20);
+  color: var(--app-header-text);
   border-radius: 6px;
   cursor: pointer;
   font-size: calc(13px * var(--app-font-scale));
@@ -149,11 +160,11 @@ const shortcuts: { keys: string; desc: string }[] = [
 }
 
 .header-btn:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--color-overlay-white-25);
 }
 
 .header-btn.active {
-  background: rgba(255, 255, 255, 0.35);
+  background: var(--color-overlay-white-30);
 }
 
 .settings-dropdown {
@@ -163,18 +174,18 @@ const shortcuts: { keys: string; desc: string }[] = [
   width: 320px;
   max-height: 70vh;
   overflow-y: auto;
-  background: var(--surface, #fff);
-  color: #333;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 6px 20px var(--color-shadow-strong);
   z-index: 1000;
   padding: 12px;
 }
 
 .settings-section {
   padding: 8px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-border-lighter);
 }
 
 .settings-section:last-child {
@@ -187,7 +198,7 @@ const shortcuts: { keys: string; desc: string }[] = [
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .font-size-group {
@@ -214,9 +225,9 @@ const shortcuts: { keys: string; desc: string }[] = [
 }
 
 .font-size-option.active {
-  background: #1976d2;
-  color: white;
-  border-color: #1976d2;
+  background: var(--color-primary);
+  color: var(--app-header-text);
+  border-color: var(--color-primary);
 }
 
 .font-size-option input {
@@ -234,19 +245,19 @@ const shortcuts: { keys: string; desc: string }[] = [
   align-items: flex-start;
   gap: 8px;
   padding: 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   cursor: pointer;
   user-select: none;
 }
 
 .theme-option:hover {
-  background: #f9f9f9;
+  background: var(--color-bg-soft);
 }
 
 .theme-option.active {
-  border-color: #1976d2;
-  background: #e3f2fd;
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 .theme-option input {
@@ -269,12 +280,12 @@ const shortcuts: { keys: string; desc: string }[] = [
 .theme-name {
   font-size: calc(12px * var(--app-font-scale));
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .theme-desc {
   font-size: calc(10px * var(--app-font-scale));
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .theme-swatches {
@@ -286,7 +297,7 @@ const shortcuts: { keys: string; desc: string }[] = [
   width: 18px;
   height: 18px;
   border-radius: 3px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--color-border);
 }
 
 .shortcuts-table {
@@ -312,10 +323,10 @@ kbd {
   font-family: var(--mono);
   font-size: calc(11px * var(--app-font-scale));
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .shortcut-desc {
-  color: #555;
+  color: var(--color-text-secondary);
 }
 </style>

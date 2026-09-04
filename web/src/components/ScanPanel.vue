@@ -2,10 +2,11 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useScanStore } from '../stores/scan'
 import { getRegions, type RegionInfo } from '../api/client'
-import { theme } from '../config/theme'
+import { useSettingsStore } from '../stores/settings'
 import Icon from './Icon.vue'
 
 const scanStore = useScanStore()
+const settingsStore = useSettingsStore()
 const selectedRegions = ref<string[]>([])
 const regions = ref<RegionInfo[]>([])
 const regionDropdownOpen = ref(false)
@@ -123,17 +124,18 @@ const unpinnedCount = computed(() => scanStore.scans.filter(s => !s.pinned).leng
 const hasUnpinnedScans = computed(() => unpinnedCount.value > 0)
 
 const statusColor = (status: string) => {
-  switch (status) {
+  const colors = settingsStore.currentTheme().system.status
+  switch (status.toUpperCase()) {
     case 'RUNNING':
-      return theme.success
+      return colors.success
     case 'COMPLETED':
-      return theme.info
+      return colors.info
     case 'FAILED':
-      return theme.error.DEFAULT
+      return colors.error
     case 'CANCELLED':
-      return theme.warning.DEFAULT
+      return colors.warning
     default:
-      return theme.gray.DEFAULT
+      return colors.neutral
   }
 }
 

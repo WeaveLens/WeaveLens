@@ -1,11 +1,110 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <title>WeaveLens — Editable Vector Logo</title>
+  <desc>WeaveLens logo: a simplified lens containing a woven graph, with cyan and dark-violet neon accents. Transparent background.</desc>
+
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#1976d2"/>
-      <stop offset="1" stop-color="#1565c0"/>
+    <linearGradient id="cyanViolet" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00E5FF"/>
+      <stop offset="52%" stop-color="#2D8CFF"/>
+      <stop offset="100%" stop-color="#7A2CFF"/>
     </linearGradient>
+    <linearGradient id="violetCyan" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#B52CFF"/>
+      <stop offset="50%" stop-color="#6C36FF"/>
+      <stop offset="100%" stop-color="#00E5FF"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
-  <circle cx="24" cy="24" r="22" fill="url(#g)"/>
-  <path d="M24 14a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18.5a8.5 8.5 0 1 1 0-17 8.5 8.5 0 0 1 0 17z" fill="#ffffff" opacity="0.95"/>
-  <circle cx="24" cy="24" r="4" fill="#ffffff"/>
+
+  <!-- =========================================================
+       ICON GROUP — keep this group for favicon/app icon export
+       ========================================================= -->
+  <g id="icon" transform="translate(560 90)">
+
+    <!-- Outer lens ring -->
+    <circle id="lens-ring" cx="270" cy="270" r="225"
+            fill="none" stroke="url(#cyanViolet)" stroke-width="24"
+            filter="url(#glow)"/>
+    <circle id="lens-inner-ring" cx="270" cy="270" r="198"
+            fill="none" stroke="#14224F" stroke-width="5" opacity="0.95"/>
+
+    <!-- Woven graph inside the lens -->
+    <g id="woven-graph" fill="none" stroke-linecap="round">
+      <path d="M130 245 C165 120 225 115 270 185 C315 255 370 270 415 180"
+            stroke="#00E5FF" stroke-width="13" filter="url(#glow)"/>
+      <path d="M135 335 C190 235 235 225 285 285 C335 345 370 355 410 275"
+            stroke="#9C35FF" stroke-width="13" filter="url(#glow)"/>
+      <path d="M165 145 C210 210 250 215 305 150 C350 95 380 155 395 235"
+            stroke="#35A8FF" stroke-width="11"/>
+      <path d="M160 390 C205 325 235 310 275 350 C320 395 350 385 390 330"
+            stroke="#7A2CFF" stroke-width="11"/>
+      <path d="M145 210 C220 250 315 250 400 315"
+            stroke="#00D7FF" stroke-width="9"/>
+      <path d="M155 315 C225 275 315 190 395 215"
+            stroke="#B52CFF" stroke-width="9"/>
+    </g>
+
+    <!-- Graph nodes -->
+    <g id="nodes">
+      <circle cx="130" cy="245" r="17" fill="#00E5FF"/>
+      <circle cx="165" cy="145" r="15" fill="#7A2CFF"/>
+      <circle cx="160" cy="390" r="15" fill="#00E5FF"/>
+      <circle cx="270" cy="185" r="20" fill="#00E5FF"/>
+      <circle cx="285" cy="285" r="21" fill="#B52CFF"/>
+      <circle cx="275" cy="350" r="16" fill="#00E5FF"/>
+      <circle cx="395" cy="215" r="17" fill="#9C35FF"/>
+      <circle cx="410" cy="275" r="18" fill="#00E5FF"/>
+      <circle cx="390" cy="330" r="15" fill="#7A2CFF"/>
+    </g>
+
+    <!-- Woven handle: three interlaced strands -->
+    <g id="woven-handle" fill="none" stroke-linecap="round" filter="url(#glow)">
+      <path d="M112 430 C150 470 165 510 140 560 C115 610 150 650 205 675"
+            stroke="#00E5FF" stroke-width="22"/>
+      <path d="M165 425 C125 470 120 520 160 555 C200 590 190 635 145 680"
+            stroke="#8A2CFF" stroke-width="22"/>
+      <path d="M205 425 C170 475 185 515 225 550 C265 585 245 630 195 675"
+            stroke="#2E8FFF" stroke-width="22"/>
+    </g>
+
+    <!-- Connector -->
+    <path id="handle-connector" d="M150 390 L185 425"
+          stroke="url(#cyanViolet)" stroke-width="35" stroke-linecap="round"/>
+  </g>
+
+  <!-- =========================================================
+       WORDMARK GROUP
+       ========================================================= -->
+  <g id="wordmark" text-anchor="middle">
+    <text x="800" y="715"
+          font-family="Montserrat, Poppins, Arial, sans-serif"
+          font-size="112" font-weight="800" letter-spacing="2"
+          fill="url(#cyanViolet)">WeaveLens</text>
+
+    <!-- subtle divider -->
+    <line x1="475" y1="755" x2="680" y2="755"
+          stroke="#00E5FF" stroke-width="5" stroke-linecap="round"/>
+    <line x1="920" y1="755" x2="1125" y2="755"
+          stroke="#8A2CFF" stroke-width="5" stroke-linecap="round"/>
+
+    <text x="800" y="775"
+          font-family="Montserrat, Poppins, Arial, sans-serif"
+          font-size="25" font-weight="500" letter-spacing="9"
+          fill="#8E9AC7">DISCOVER · MAP · CONNECT</text>
+  </g>
+
+  <!-- =========================================================
+       SAFE-AREA GUIDE — hidden by default; delete or toggle
+       this group on when editing the logo.
+       ========================================================= -->
+  <g id="safe-area-guide" display="none" fill="none" stroke="#FF0000" opacity="0.35">
+    <rect x="360" y="35" width="880" height="780" stroke-width="2"/>
+  </g>
 </svg>

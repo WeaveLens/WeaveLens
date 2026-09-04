@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import { THEMES, THEME_LIST, getCategoryColor, getSystemColor, type ThemeId, type ThemePreset } from '../config/categories'
+import { THEMES, THEME_LIST, getCategoryColor, type ThemeId, type ThemePreset } from '../config/categories'
 
 export type FontSize = 'small' | 'medium' | 'large' | 'very-large'
 
@@ -41,43 +41,40 @@ function applyFontSize(size: FontSize) {
 
 function applyTheme(themeId: ThemeId) {
   const root = document.documentElement
-  if (themeId === 'default') {
-    root.style.removeProperty('--text')
-    root.style.removeProperty('--text-h')
-    root.style.removeProperty('--text-muted')
-    root.style.removeProperty('--bg')
-    root.style.removeProperty('--surface')
-    root.style.removeProperty('--surface-alt')
-    root.style.removeProperty('--border')
-    root.style.removeProperty('--code-bg')
-    root.style.removeProperty('--accent')
-    root.style.removeProperty('--accent-bg')
-    root.style.removeProperty('--accent-border')
-    root.style.removeProperty('--shadow')
-    root.style.removeProperty('--app-header-bg')
-    root.style.removeProperty('--app-header-text')
-    root.style.removeProperty('--app-panel-bg')
-    root.style.removeProperty('--app-panel-border')
-    root.style.removeProperty('--app-graph-bg')
-  } else {
-    root.style.setProperty('--text', getSystemColor('text', themeId))
-    root.style.setProperty('--text-h', getSystemColor('textHeading', themeId))
-    root.style.setProperty('--text-muted', getSystemColor('textMuted', themeId))
-    root.style.setProperty('--bg', getSystemColor('background', themeId))
-    root.style.setProperty('--surface', getSystemColor('surface', themeId))
-    root.style.setProperty('--surface-alt', getSystemColor('surfaceAlt', themeId))
-    root.style.setProperty('--border', getSystemColor('border', themeId))
-    root.style.setProperty('--code-bg', getSystemColor('codeBg', themeId))
-    root.style.setProperty('--accent', getSystemColor('accent', themeId))
-    root.style.setProperty('--accent-bg', getSystemColor('accentBg', themeId))
-    root.style.setProperty('--accent-border', getSystemColor('accentBorder', themeId))
-    root.style.setProperty('--shadow', getSystemColor('shadow', themeId))
-    root.style.setProperty('--app-header-bg', getSystemColor('headerBg', themeId))
-    root.style.setProperty('--app-header-text', getSystemColor('headerText', themeId))
-    root.style.setProperty('--app-panel-bg', getSystemColor('panelBg', themeId))
-    root.style.setProperty('--app-panel-border', getSystemColor('panelBorder', themeId))
-    root.style.setProperty('--app-graph-bg', getSystemColor('graphBg', themeId))
+  const system = THEMES[themeId]?.system ?? THEMES.default.system
+  const properties: Record<string, string> = {
+    '--text': system.text,
+    '--text-h': system.textHeading,
+    '--text-muted': system.textMuted,
+    '--bg': system.background,
+    '--surface': system.surface,
+    '--surface-alt': system.surfaceAlt,
+    '--border': system.border,
+    '--code-bg': system.codeBg,
+    '--accent': system.accent,
+    '--accent-bg': system.accentBg,
+    '--accent-border': system.accentBorder,
+    '--shadow': system.shadow,
+    '--app-header-bg': system.headerBg,
+    '--app-header-text': system.headerText,
+    '--app-panel-bg': system.panelBg,
+    '--app-panel-border': system.panelBorder,
+    '--app-graph-bg': system.graphBg,
+    '--color-text-primary': system.textHeading,
+    '--color-text-secondary': system.text,
+    '--color-text-muted': system.textMuted,
+    '--color-bg': system.background,
+    '--color-bg-subtle': system.graphBg,
+    '--color-bg-soft': system.surfaceAlt,
+    '--color-bg-card': system.surface,
+    '--color-border': system.border,
+    '--color-border-light': system.border,
+    '--color-border-lighter': system.border,
+    '--color-primary': system.accent,
+    '--color-primary-hover': system.accent,
+    '--color-primary-bg': system.accentBg,
   }
+  Object.entries(properties).forEach(([name, value]) => root.style.setProperty(name, value))
 }
 
 export const useSettingsStore = defineStore('settings', () => {

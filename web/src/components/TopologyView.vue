@@ -190,7 +190,7 @@ function initCy() {
         selector: 'node.highlighted',
         style: {
           'border-width': 3,
-          'border-color': theme.success,
+          'border-color': settingsStore.currentTheme().system.status.success,
         },
       },
     ],
@@ -249,6 +249,23 @@ function initCy() {
       graphStore.saveViewport(scanId, cy.zoom(), { x: cy.pan().x, y: cy.pan().y })
     }
   })
+}
+
+function updateCyTheme() {
+  if (!cy) return
+  const colors = settingsStore.currentTheme().system
+  cy.style()
+    .selector('node')
+    .style({ color: colors.textHeading, 'border-color': colors.headerText })
+    .selector('edge')
+    .style({
+      color: colors.text,
+      'line-color': colors.text,
+      'target-arrow-color': colors.text,
+    })
+    .selector('node:selected')
+    .style({ 'border-color': colors.accent })
+    .update()
 }
 
 function fitGraph() {
@@ -462,6 +479,10 @@ watch(
   }
 )
 
+watch(() => settingsStore.themeId, () => {
+  updateCyTheme()
+})
+
 let resizeObserver: ResizeObserver | null = null
 
 function onKeydown(e: KeyboardEvent) {
@@ -506,9 +527,6 @@ onMounted(() => {
     resizeObserver = new ResizeObserver(() => {
       if (cy) {
         cy.resize()
-        if (!graphStore.layoutLocked) {
-          cy.fit(undefined, 40)
-        }
       }
     })
     resizeObserver.observe(containerRef.value)
@@ -830,7 +848,7 @@ defineExpose({ fitGraph })
   border-radius: 4px;
   cursor: pointer;
   font-size: calc(12px * var(--app-font-scale));
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px var(--color-shadow-soft);
 }
 
 .overlay-btn:hover {
@@ -846,7 +864,7 @@ defineExpose({ fitGraph })
   border: 1px solid var(--border, #ddd);
   border: 1px solid var(--color-border-lighter);
   border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px var(--color-shadow-medium);
   min-width: 150px;
   max-height: 200px;
   overflow-y: auto;
@@ -1027,7 +1045,7 @@ defineExpose({ fitGraph })
   border: 1px solid var(--border, #ddd);
   border: 1px solid var(--color-border-lighter);
   border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px var(--color-shadow-medium);
   max-height: 150px;
   overflow-y: auto;
   z-index: 9999;

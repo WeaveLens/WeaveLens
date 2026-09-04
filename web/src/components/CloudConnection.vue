@@ -2,12 +2,13 @@
 import { ref, onMounted, computed } from 'vue'
 import { getConnectionStatus } from '../api/client'
 import type { ConnectionStatus, ConnectionState } from '../types'
-import { theme } from '../config/theme'
+import { useSettingsStore } from '../stores/settings'
 import Icon from './Icon.vue'
 
 const connection = ref<ConnectionStatus | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
+const settingsStore = useSettingsStore()
 
 async function loadConnectionStatus() {
   loading.value = true
@@ -47,20 +48,21 @@ const stateLabel = (state: ConnectionState): string => {
 }
 
 const stateColor = (state: ConnectionState): string => {
+  const colors = settingsStore.currentTheme().system.status
   switch (state) {
     case 'connected':
-      return theme.success
+      return colors.success
     case 'connecting':
-      return theme.warning.DEFAULT
+      return colors.warning
     case 'not_connected':
-      return theme.gray.DEFAULT
+      return colors.neutral
     case 'authentication_error':
     case 'access_denied':
     case 'configuration_error':
     case 'unknown_error':
-      return theme.error.DEFAULT
+      return colors.error
     default:
-      return theme.gray.DEFAULT
+      return colors.neutral
   }
 }
 
