@@ -336,9 +336,9 @@ const regionButtonLabel = computed(() => {
 
 .panel-header h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: calc(14px * var(--app-font-scale));
   font-weight: 600;
-  color: #333;
+  color: var(--text-h, #333);
 }
 
 .scan-form {
@@ -355,7 +355,7 @@ const regionButtonLabel = computed(() => {
 }
 
 .label-text {
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
   font-weight: 500;
   color: #666;
 }
@@ -365,12 +365,12 @@ const regionButtonLabel = computed(() => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #ddd);
   border-radius: 6px;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
   background: white;
   cursor: pointer;
-  color: #333;
+  color: var(--text-h, #333);
   text-align: left;
 }
 
@@ -384,7 +384,7 @@ const regionButtonLabel = computed(() => {
 }
 
 .caret {
-  font-size: 10px;
+  font-size: calc(10px * var(--app-font-scale));
   color: #999;
 }
 
@@ -395,7 +395,7 @@ const regionButtonLabel = computed(() => {
   right: 0;
   max-height: 260px;
   background: white;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #ddd);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 10;
@@ -414,7 +414,7 @@ const regionButtonLabel = computed(() => {
 .region-empty {
   padding: 12px;
   color: #999;
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
   text-align: center;
 }
 
@@ -423,13 +423,13 @@ const regionButtonLabel = computed(() => {
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
   cursor: pointer;
-  color: #333;
+  color: var(--text-h, #333);
 }
 
 .region-option:hover {
-  background: #f5f5f5;
+  background: var(--surface-alt, #f5f5f5);
 }
 
 .region-option input {
@@ -451,7 +451,7 @@ const regionButtonLabel = computed(() => {
 .clear-btn,
 .ok-btn {
   border: none;
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
   cursor: pointer;
   padding: 6px 14px;
   border-radius: 4px;
@@ -478,7 +478,7 @@ const regionButtonLabel = computed(() => {
 }
 
 .region-hint {
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-scale));
   color: #888;
   padding: 0 2px;
 }
@@ -490,7 +490,7 @@ const regionButtonLabel = computed(() => {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
   font-weight: 500;
   transition: background 0.2s;
 }
@@ -533,11 +533,11 @@ const regionButtonLabel = computed(() => {
   background: #ffebee;
   border-radius: 6px;
   color: #c62828;
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
 }
 
 .error-icon {
-  font-size: 14px;
+  font-size: calc(14px * var(--app-font-scale));
 }
 
 .current-scan {
@@ -546,9 +546,9 @@ const regionButtonLabel = computed(() => {
 
 .current-scan h4 {
   margin: 0 0 8px 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
   font-weight: 600;
-  color: #333;
+  color: var(--text-h, #333);
 }
 
 .scan-card {
@@ -563,7 +563,7 @@ const regionButtonLabel = computed(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 6px;
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
 }
 
 .scan-row:last-child {
@@ -576,12 +576,12 @@ const regionButtonLabel = computed(() => {
 }
 
 .value {
-  color: #333;
+  color: var(--text-h, #333);
 }
 
 .mono {
   font-family: monospace;
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-scale));
 }
 
 .status {
@@ -594,9 +594,9 @@ const regionButtonLabel = computed(() => {
 
 .scan-history h4 {
   margin: 0 0 8px 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
   font-weight: 600;
-  color: #333;
+  color: var(--text-h, #333);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -611,9 +611,9 @@ const regionButtonLabel = computed(() => {
 
 .clear-unpinned-btn {
   background: transparent;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #ddd);
   color: #666;
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-scale));
   padding: 3px 8px;
   border-radius: 4px;
   cursor: pointer;
@@ -629,7 +629,7 @@ const regionButtonLabel = computed(() => {
 
 .history-count {
   margin-left: 8px;
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-scale));
   font-weight: 500;
   color: #1976d2;
   background: #e3f2fd;
@@ -654,14 +654,14 @@ const regionButtonLabel = computed(() => {
   flex-direction: column;
   padding: 10px 8px;
   border-bottom: 1px solid #eee;
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
   cursor: pointer;
   border-radius: 4px;
   transition: background 0.15s;
 }
 
 .history-item:hover {
-  background: #f5f5f5;
+  background: var(--surface-alt, #f5f5f5);
 }
 
 .history-item.active {
@@ -696,10 +696,10 @@ const regionButtonLabel = computed(() => {
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #ddd);
   border-radius: 4px;
   color: #c62828;
-  font-size: 14px;
+  font-size: calc(14px * var(--app-font-scale));
   line-height: 1;
   cursor: pointer;
   padding: 0;
@@ -724,9 +724,9 @@ const regionButtonLabel = computed(() => {
   align-items: center;
   justify-content: center;
   background: transparent;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #ddd);
   border-radius: 4px;
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
   line-height: 1;
   cursor: pointer;
   padding: 0;
@@ -753,7 +753,7 @@ const regionButtonLabel = computed(() => {
   justify-content: space-between;
   align-items: center;
   gap: 4px;
-  font-size: 10px;
+  font-size: calc(10px * var(--app-font-scale));
   color: #999;
 }
 
@@ -804,12 +804,12 @@ const regionButtonLabel = computed(() => {
 }
 
 .empty-icon {
-  font-size: 32px;
+  font-size: calc(32px * var(--app-font-scale));
   margin-bottom: 8px;
 }
 
 .empty-state p {
   margin: 0;
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
 }
 </style>

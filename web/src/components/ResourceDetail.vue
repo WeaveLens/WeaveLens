@@ -131,7 +131,7 @@ const categoryColor = computed(() => {
 
 .detail-header h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: calc(16px * var(--app-font-scale));
   font-weight: 600;
 }
 
@@ -139,10 +139,10 @@ const categoryColor = computed(() => {
   width: 28px;
   height: 28px;
   border: none;
-  background: #f5f5f5;
+  background: var(--surface-alt, #f5f5f5);
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: calc(14px * var(--app-font-scale));
   color: #666;
 }
 
@@ -163,7 +163,7 @@ const categoryColor = computed(() => {
   padding: 4px 12px;
   border-radius: 12px;
   color: white;
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-scale));
   font-weight: 600;
   margin-bottom: 12px;
 }
@@ -178,7 +178,7 @@ const categoryColor = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
   gap: 8px;
 }
 
@@ -197,14 +197,14 @@ const categoryColor = computed(() => {
 
 .mono {
   font-family: monospace;
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-scale));
 }
 
 .metadata-section h4,
 .tags-section h4,
 .relationships-section h4 {
   margin: 0 0 8px 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
   font-weight: 600;
   color: #333;
 }
@@ -224,7 +224,7 @@ const categoryColor = computed(() => {
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   margin-bottom: 6px;
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
 }
 
 .rel-type {
@@ -258,19 +258,19 @@ const categoryColor = computed(() => {
 }
 
 .empty-icon {
-  font-size: 48px;
+  font-size: calc(48px * var(--app-font-scale));
   margin-bottom: 16px;
 }
 
 .empty-state h3 {
   margin: 0 0 8px 0;
-  font-size: 16px;
+  font-size: calc(16px * var(--app-font-scale));
   color: #333;
 }
 
 .empty-state p {
   margin: 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
   max-width: 200px;
 }
 </style>

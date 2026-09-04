@@ -3,11 +3,12 @@ import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import cytoscape, { type Core, type EventObject } from 'cytoscape'
 import { useGraphStore } from '../stores/graph'
 import { useScanStore } from '../stores/scan'
-import { getCategoryColor } from '../config/categories'
+import { useSettingsStore } from '../stores/settings'
 import { tierOf, type LayoutMode } from '../stores/graph'
 
 const graphStore = useGraphStore()
 const scanStore = useScanStore()
+const settingsStore = useSettingsStore()
 const containerRef = ref<HTMLDivElement | null>(null)
 const regionFilterRef = ref<HTMLElement | null>(null)
 const typeFilterRef = ref<HTMLElement | null>(null)
@@ -155,7 +156,7 @@ const elements = computed(() => {
       id: node.id,
       label: node.name,
       category: node.category,
-      color: getCategoryColor(node.category),
+      color: settingsStore.getColor(node.category),
       type: node.type,
       region: node.region,
       tier: tierOf(node.category),
@@ -718,7 +719,7 @@ defineExpose({ fitGraph })
   flex-direction: column;
   position: relative;
   min-height: 0;
-  background: #fafafa;
+  background: var(--app-graph-bg, #fafafa);
 }
 
 .graph-controls {
@@ -733,35 +734,35 @@ defineExpose({ fitGraph })
 
 .control-btn {
   padding: 6px 12px;
-  background: #f5f5f5;
-  border: 1px solid #ddd;
+  background: var(--surface-alt, #f5f5f5);
+  border: 1px solid var(--border, #ddd);
   border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
 }
 
 .control-btn:hover {
-  background: #e0e0e0;
+  background: var(--border, #e0e0e0);
 }
 
 .control-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: #f5f5f5;
+  background: var(--surface-alt, #f5f5f5);
 }
 
 .control-btn:disabled:hover {
-  background: #f5f5f5;
+  background: var(--surface-alt, #f5f5f5);
 }
 
 .control-btn.active {
-  background: #1976d2;
+  background: var(--accent, #1976d2);
   color: white;
-  border-color: #1976d2;
+  border-color: var(--accent, #1976d2);
 }
 
 .control-btn.active:hover {
-  background: #1565c0;
+  background: var(--accent, #1565c0);
 }
 
 .graph-controls-group {
@@ -771,7 +772,7 @@ defineExpose({ fitGraph })
 }
 
 .layout-label {
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-scale));
   color: #666;
   font-weight: 600;
 }
@@ -779,18 +780,18 @@ defineExpose({ fitGraph })
 .control-select {
   padding: 5px 8px;
   background: white;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #ddd);
   border-radius: 4px;
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
   cursor: pointer;
 }
 
 .control-select:hover {
-  border-color: #1976d2;
+  border-color: var(--accent, #1976d2);
 }
 
 .node-count {
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
   color: #666;
 }
 
@@ -798,7 +799,7 @@ defineExpose({ fitGraph })
   flex: 1;
   min-height: 0;
   width: 100%;
-  background: #fafafa;
+  background: var(--app-graph-bg, #fafafa);
 }
 
 .graph-overlay {
@@ -818,15 +819,15 @@ defineExpose({ fitGraph })
 .overlay-btn {
   padding: 6px 12px;
   background: white;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #ddd);
   border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .overlay-btn:hover {
-  background: #f5f5f5;
+  background: var(--surface-alt, #f5f5f5);
 }
 
 .filter-dropdown {
@@ -834,7 +835,7 @@ defineExpose({ fitGraph })
   top: 100%;
   left: 0;
   background: white;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #ddd);
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   min-width: 150px;
@@ -851,11 +852,11 @@ defineExpose({ fitGraph })
   gap: 8px;
   padding: 4px 8px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
 }
 
 .filter-option:hover {
-  background: #f5f5f5;
+  background: var(--surface-alt, #f5f5f5);
 }
 
 .match-toggle {
@@ -869,22 +870,22 @@ defineExpose({ fitGraph })
 .toggle-btn {
   flex: 1;
   padding: 4px 8px;
-  background: #f5f5f5;
-  border: 1px solid #ddd;
+  background: var(--surface-alt, #f5f5f5);
+  border: 1px solid var(--border, #ddd);
   border-radius: 4px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-scale));
   font-weight: 600;
 }
 
 .toggle-btn.active {
-  background: #1976d2;
+  background: var(--accent, #1976d2);
   color: white;
-  border-color: #1976d2;
+  border-color: var(--accent, #1976d2);
 }
 
 .toggle-btn:hover:not(.active) {
-  background: #e0e0e0;
+  background: var(--border, #e0e0e0);
 }
 
 .advanced-dropdown {
@@ -896,10 +897,10 @@ defineExpose({ fitGraph })
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  background: #f5f5f5;
+  background: var(--surface-alt, #f5f5f5);
   border-radius: 4px;
   margin-bottom: 4px;
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-scale));
 }
 
 .rule-field {
@@ -920,7 +921,7 @@ defineExpose({ fitGraph })
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  font-size: 14px;
+  font-size: calc(14px * var(--app-font-scale));
   line-height: 1;
 }
 
@@ -947,40 +948,40 @@ defineExpose({ fitGraph })
 .rule-select,
 .rule-input {
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #ddd);
   border-radius: 4px;
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-scale));
 }
 
 .add-btn {
   padding: 6px 12px;
-  background: #1976d2;
+  background: var(--accent, #1976d2);
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-scale));
 }
 
 .add-btn:hover {
-  background: #1565c0;
+  background: var(--accent, #1565c0);
 }
 
 .cancel-btn {
   padding: 6px 12px;
-  background: #f5f5f5;
-  border: 1px solid #ddd;
+  background: var(--surface-alt, #f5f5f5);
+  border: 1px solid var(--border, #ddd);
   border-radius: 4px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-scale));
 }
 
 .cancel-btn:hover {
-  background: #e0e0e0;
+  background: var(--border, #e0e0e0);
 }
 
 .rule-input:disabled {
-  background: #f5f5f5;
+  background: var(--surface-alt, #f5f5f5);
   color: #999;
   cursor: not-allowed;
 }
@@ -997,7 +998,7 @@ defineExpose({ fitGraph })
 .value-dropdown {
   position: fixed;
   background: white;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #ddd);
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   max-height: 150px;
@@ -1008,7 +1009,7 @@ defineExpose({ fitGraph })
 .value-option {
   padding: 6px 8px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-scale));
 }
 
 .value-option:hover {
@@ -1020,20 +1021,20 @@ defineExpose({ fitGraph })
 }
 
 .tag-key {
-  font-size: 10px;
+  font-size: calc(10px * var(--app-font-scale));
   font-weight: 600;
   color: #1976d2;
   padding: 4px 8px;
-  background: #f5f5f5;
+  background: var(--surface-alt, #f5f5f5);
   border-radius: 4px;
   margin-bottom: 4px;
 }
 
 .filter-help {
-  font-size: 10px;
+  font-size: calc(10px * var(--app-font-scale));
   color: #666;
   padding: 4px 8px;
-  background: #f5f5f5;
+  background: var(--surface-alt, #f5f5f5);
   border-radius: 4px;
   margin-top: 4px;
 }
@@ -1042,15 +1043,15 @@ defineExpose({ fitGraph })
   width: 100%;
   margin-top: 8px;
   padding: 4px;
-  background: #f5f5f5;
-  border: 1px solid #ddd;
+  background: var(--surface-alt, #f5f5f5);
+  border: 1px solid var(--border, #ddd);
   border-radius: 4px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-scale));
 }
 
 .clear-btn:hover {
-  background: #e0e0e0;
+  background: var(--border, #e0e0e0);
 }
 
 .empty-state {
@@ -1064,19 +1065,19 @@ defineExpose({ fitGraph })
 }
 
 .empty-icon {
-  font-size: 48px;
+  font-size: calc(48px * var(--app-font-scale));
   margin-bottom: 16px;
 }
 
 .empty-state h3 {
   margin: 0 0 8px 0;
-  font-size: 18px;
+  font-size: calc(18px * var(--app-font-scale));
   color: #333;
 }
 
 .empty-state p {
   margin: 0;
-  font-size: 14px;
+  font-size: calc(14px * var(--app-font-scale));
   max-width: 300px;
 }
 </style>

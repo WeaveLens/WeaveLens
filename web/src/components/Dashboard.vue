@@ -9,6 +9,7 @@ import ResourceDetail from './ResourceDetail.vue'
 import Legend from './Legend.vue'
 import SearchBar from './SearchBar.vue'
 import CloudConnection from './CloudConnection.vue'
+import SettingsDropdown from './SettingsDropdown.vue'
 import { subscribeScans } from '../api/client'
 
 const scanStore = useScanStore()
@@ -56,9 +57,7 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
         <button @click="uiStore.toggleSidebar" class="header-btn">
           {{ uiStore.sidebarOpen ? 'Hide' : 'Show' }} Panel
         </button>
-        <button @click="uiStore.toggleLegend" class="header-btn">
-          {{ uiStore.legendOpen ? 'Hide' : 'Show' }} Legend
-        </button>
+        <SettingsDropdown />
       </nav>
     </header>
 
@@ -71,7 +70,7 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
       <main class="main-content">
         <SearchBar />
         <TopologyView />
-        <Legend v-if="uiStore.legendOpen" />
+        <Legend />
       </main>
 
       <aside v-if="uiStore.sidebarOpen" class="panel right-panel">
@@ -94,8 +93,8 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 24px;
-  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-  color: white;
+  background: var(--app-header-bg, linear-gradient(135deg, #1976d2 0%, #1565c0 100%));
+  color: var(--app-header-text, #fff);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   z-index: 10;
   flex-shrink: 0;
@@ -109,12 +108,12 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
 
 .app-header h1 {
   margin: 0;
-  font-size: 22px;
+  font-size: calc(22px * var(--app-font-scale));
   font-weight: 600;
 }
 
 .header-subtitle {
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
   opacity: 0.8;
   font-weight: 400;
 }
@@ -129,10 +128,10 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
   padding: 8px 16px;
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
+  color: var(--app-header-text, #fff);
   border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
   transition: background 0.2s;
 }
 
@@ -144,11 +143,11 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
   padding: 8px 16px;
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
+  color: var(--app-header-text, #fff);
   border-radius: 6px;
   cursor: pointer;
   text-decoration: none;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
   transition: background 0.2s;
 }
 
@@ -165,17 +164,17 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
 .panel {
   width: 300px;
   flex-shrink: 0;
-  background: #fafafa;
+  background: var(--app-panel-bg, #fafafa);
   overflow-y: auto;
   overflow-x: hidden;
 }
 
 .left-panel {
-  border-right: 1px solid #e0e0e0;
+  border-right: 1px solid var(--app-panel-border, #e0e0e0);
 }
 
 .right-panel {
-  border-left: 1px solid #e0e0e0;
+  border-left: 1px solid var(--app-panel-border, #e0e0e0);
 }
 
 .main-content {
@@ -210,7 +209,7 @@ watch(() => scanStore.currentScan?.id, async (scanId) => {
   }
   .left-panel {
     border-right: none;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid var(--app-panel-border, #e0e0e0);
   }
 }
 </style>

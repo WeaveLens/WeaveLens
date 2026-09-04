@@ -241,13 +241,13 @@ async function checkConnection() {
 
 .guide-header h1 {
   margin: 0 0 8px 0;
-  font-size: 28px;
+  font-size: calc(28px * var(--app-font-scale));
   color: #333;
 }
 
 .subtitle {
   color: #666;
-  font-size: 15px;
+  font-size: calc(15px * var(--app-font-scale));
   line-height: 1.5;
   max-width: 600px;
 }
@@ -266,7 +266,7 @@ async function checkConnection() {
 
 .setup-section h2 {
   margin: 0 0 16px 0;
-  font-size: 18px;
+  font-size: calc(18px * var(--app-font-scale));
   color: #333;
 }
 
@@ -288,7 +288,7 @@ async function checkConnection() {
 .steps li p {
   margin: 4px 0;
   color: #666;
-  font-size: 14px;
+  font-size: calc(14px * var(--app-font-scale));
 }
 
 .code-block {
@@ -305,7 +305,7 @@ async function checkConnection() {
 
 .code-block code {
   font-family: monospace;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
   word-break: break-all;
   flex: 1;
   white-space: pre-wrap;
@@ -318,7 +318,7 @@ async function checkConnection() {
   border: 1px solid #455a64;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-scale));
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -329,7 +329,7 @@ async function checkConnection() {
 
 .warning {
   color: #e65100;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
   margin-top: 12px;
   padding: 8px 12px;
   background: #fff3e0;
@@ -338,7 +338,7 @@ async function checkConnection() {
 
 .note {
   color: #666;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
   margin-top: 8px;
 }
 
@@ -358,7 +358,7 @@ async function checkConnection() {
 
 .permission-category h3 {
   margin: 0 0 8px 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
   color: #1976d2;
 }
 
@@ -369,7 +369,7 @@ async function checkConnection() {
 }
 
 .permission-category li {
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
   color: #666;
   padding: 2px 0;
 }
@@ -382,14 +382,14 @@ async function checkConnection() {
 
 .trouble-item h3 {
   margin: 0 0 4px 0;
-  font-size: 14px;
+  font-size: calc(14px * var(--app-font-scale));
   color: #333;
 }
 
 .trouble-item p {
   margin: 4px 0;
   color: #666;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
 }
 
 .guide-footer {
@@ -407,7 +407,7 @@ async function checkConnection() {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: calc(14px * var(--app-font-scale));
   font-weight: 500;
 }
 
@@ -422,7 +422,7 @@ async function checkConnection() {
   border: 1px solid #1976d2;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: calc(14px * var(--app-font-scale));
   text-decoration: none;
   display: flex;
   align-items: center;
@@ -439,7 +439,7 @@ async function checkConnection() {
   }
 
   .guide-header h1 {
-    font-size: 22px;
+    font-size: calc(22px * var(--app-font-scale));
   }
 
   .permissions-grid {

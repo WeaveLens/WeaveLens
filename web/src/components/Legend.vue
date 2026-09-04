@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useGraphStore } from '../stores/graph'
-import { CATEGORY_META } from '../config/categories'
+import { useSettingsStore } from '../stores/settings'
 
 const graphStore = useGraphStore()
+const settingsStore = useSettingsStore()
 const collapsed = ref(false)
+const categories = computed(() => settingsStore.currentTheme().categories)
 </script>
 
 <template>
@@ -18,7 +20,7 @@ const collapsed = ref(false)
     <div v-if="!collapsed" class="legend-content">
       <div class="legend-items">
         <div
-          v-for="(meta, key) in CATEGORY_META"
+          v-for="(meta, key) in categories"
           :key="key"
           class="legend-item"
           :class="{ active: graphStore.categoryFilter === key }"
@@ -40,8 +42,8 @@ const collapsed = ref(false)
 
 <style scoped>
 .legend {
-  background: white;
-  border-top: 1px solid #e0e0e0;
+  background: var(--surface, #fff);
+  border-top: 1px solid var(--app-panel-border, #e0e0e0);
   max-height: 200px;
   overflow: hidden;
   transition: max-height 0.2s ease;
@@ -62,17 +64,17 @@ const collapsed = ref(false)
 
 .legend-header h4 {
   margin: 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
   font-weight: 600;
-  color: #333;
+  color: var(--text-h, #333);
 }
 
 .collapse-btn {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 10px;
-  color: #666;
+  font-size: calc(10px * var(--app-font-scale));
+  color: var(--text-muted, #666);
   padding: 4px;
 }
 
@@ -93,19 +95,19 @@ const collapsed = ref(false)
   padding: 6px 10px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 12px;
-  background: #f5f5f5;
+  font-size: calc(12px * var(--app-font-scale));
+  background: var(--surface-alt, #f5f5f5);
   border: 2px solid transparent;
   transition: all 0.2s;
 }
 
 .legend-item:hover {
-  background: #e8e8e8;
+  background: var(--surface-alt, #e8e8e8);
 }
 
 .legend-item.active {
-  background: #e3f2fd;
-  border-color: #1976d2;
+  background: var(--accent-bg, #e3f2fd);
+  border-color: var(--accent, #1976d2);
 }
 
 .legend-color {
@@ -130,11 +132,11 @@ const collapsed = ref(false)
   border: 1px solid #ddd;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 11px;
-  color: #666;
+  font-size: calc(11px * var(--app-font-scale));
+  color: var(--text-muted, #666);
 }
 
 .clear-btn:hover {
-  background: #f5f5f5;
+  background: var(--surface-alt, #f5f5f5);
 }
 </style>

@@ -178,7 +178,7 @@ const hasError = computed(() => {
 
 .panel-header h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: calc(14px * var(--app-font-scale));
   font-weight: 600;
   color: #333;
 }
@@ -186,18 +186,18 @@ const hasError = computed(() => {
 .refresh-btn {
   width: 28px;
   height: 28px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border, #ddd);
   background: white;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: calc(14px * var(--app-font-scale));
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #f5f5f5;
+  background: var(--surface-alt, #f5f5f5);
 }
 
 .refresh-btn:disabled {
@@ -210,9 +210,9 @@ const hasError = computed(() => {
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: #f5f5f5;
+  background: var(--surface-alt, #f5f5f5);
   border-radius: 8px;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
 }
 
 .state-container.loading {
@@ -230,7 +230,7 @@ const hasError = computed(() => {
 }
 
 .state-icon {
-  font-size: 20px;
+  font-size: calc(20px * var(--app-font-scale));
   width: 32px;
   height: 32px;
   display: flex;
@@ -260,7 +260,7 @@ const hasError = computed(() => {
 }
 
 .state-message {
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
   opacity: 0.8;
 }
 
@@ -271,7 +271,7 @@ const hasError = computed(() => {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
   white-space: nowrap;
 }
 
@@ -291,7 +291,7 @@ const hasError = computed(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #f5f5f5;
+  background: var(--surface-alt, #f5f5f5);
   border-bottom: 1px solid #e0e0e0;
 }
 
@@ -302,24 +302,24 @@ const hasError = computed(() => {
 }
 
 .provider-icon {
-  font-size: 18px;
+  font-size: calc(18px * var(--app-font-scale));
 }
 
 .provider-name {
   font-weight: 600;
-  font-size: 14px;
+  font-size: calc(14px * var(--app-font-scale));
 }
 
 .connection-status {
   font-weight: 500;
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
 .status-icon {
-  font-size: 14px;
+  font-size: calc(14px * var(--app-font-scale));
 }
 
 .connection-details {
@@ -332,7 +332,7 @@ const hasError = computed(() => {
 .detail-row {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: calc(12px * var(--app-font-scale));
 }
 
 .label {
@@ -351,7 +351,7 @@ const hasError = computed(() => {
 
 .mono {
   font-family: monospace;
-  font-size: 11px;
+  font-size: calc(11px * var(--app-font-scale));
 }
 
 .state-message-full {
@@ -362,13 +362,13 @@ const hasError = computed(() => {
 .state-message-full p {
   margin: 0 0 12px 0;
   color: #666;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
 }
 
 .setup-link {
   color: #1976d2;
   text-decoration: none;
-  font-size: 13px;
+  font-size: calc(13px * var(--app-font-scale));
   font-weight: 500;
 }
 
