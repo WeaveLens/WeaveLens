@@ -37,6 +37,7 @@ const fontOptions: { value: FontSize; label: string }[] = [
 
 const shortcuts: { keys: string; desc: string }[] = [
   { keys: 'L', desc: 'Toggle layout lock' },
+  { keys: 'P', desc: 'Pin/unpin current scan' },
   { keys: 'F', desc: 'Fit the entire graph into the canvas' },
   { keys: 'R', desc: 'Recalculate node positions and fit the graph' },
   { keys: '+ / =', desc: 'Zoom in around the canvas center' },

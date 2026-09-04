@@ -504,6 +504,14 @@ function onKeydown(e: KeyboardEvent) {
   if (key === 'l') {
     e.preventDefault()
     onToggleLock()
+  } else if (key === 'p') {
+    e.preventDefault()
+    const scanId = scanStore.currentScan?.id
+    if (scanId) {
+      const scan = scanStore.scans.find(s => s.id === scanId)
+      const targetPin = !(scan?.pinned ?? false)
+      scanStore.togglePin(scanId, targetPin).catch(() => {})
+    }
   } else if (key === 'f') {
     e.preventDefault()
     fitGraph()
