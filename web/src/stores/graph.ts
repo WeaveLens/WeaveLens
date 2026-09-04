@@ -4,7 +4,7 @@ import type { Resource, Relationship } from '../types'
 import { getGraph, getResource, getRelationships, getScanPositions, setScanPositions } from '../api/client'
 import { useQuery } from '@tanstack/vue-query'
 
-export type LayoutMode = 'tiers' | 'concentric' | 'force' | 'none'
+export type LayoutMode = 'tiers' | 'tiers-vertical' | 'concentric' | 'force' | 'none'
 
 export const CATEGORY_TIER_ORDER: Record<string, number> = {
   network: 0,

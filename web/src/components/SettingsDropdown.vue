@@ -37,8 +37,11 @@ const fontOptions: { value: FontSize; label: string }[] = [
 
 const shortcuts: { keys: string; desc: string }[] = [
   { keys: 'L', desc: 'Toggle layout lock' },
-  { keys: 'F', desc: 'Fit graph to screen' },
-  { keys: 'R', desc: 'Rerun current layout' },
+  { keys: 'F', desc: 'Fit the entire graph into the canvas' },
+  { keys: 'R', desc: 'Recalculate node positions and fit the graph' },
+  { keys: '+ / =', desc: 'Zoom in around the canvas center' },
+  { keys: '-', desc: 'Zoom out around the canvas center' },
+  { keys: '0', desc: 'Reset to 100% zoom and center the graph' },
 ]
 </script>
 

@@ -120,7 +120,6 @@ function openValueDropdown() {
 }
 
 let cy: Core | null = null
-let renderedScanId: string | null = null
 
 function toggleRegion(region: string) {
   const current = graphStore.regionFilter
@@ -289,14 +288,16 @@ function fitGraph() {
   }
 }
 
-function fitAfterScanLoad(scanId: string | null) {
-  if (!cy || !scanId || renderedScanId === scanId || cy.nodes().length === 0) return
-  renderedScanId = scanId
-  requestAnimationFrame(() => {
-    if (cy && graphStore.currentScanId === scanId && cy.nodes().length > 0) {
-      cy.fit(undefined, 40)
-    }
-  })
+function zoomGraph(factor: number) {
+  if (!cy) return
+  const center = { x: cy.width() / 2, y: cy.height() / 2 }
+  cy.zoom({ level: Math.max(0.1, Math.min(4, cy.zoom() * factor)), renderedPosition: center })
+}
+
+function resetZoom() {
+  if (!cy) return
+  cy.zoom(1)
+  cy.center()
 }
 
 function onToggleLock() {
@@ -326,30 +327,31 @@ function onRelayout() {
   if (graphStore.layoutLocked) {
     releaseAllNodes()
   } else {
-    runLayout(graphStore.layoutMode, { lock: false })
+    graphStore.setPinnedPositions({})
+    runLayout(graphStore.layoutMode, { lock: false, fit: true })
   }
 }
 
 function buildLayoutConfig(mode: LayoutMode) {
   if (mode === 'none') {
-    return { name: 'preset', fit: true, padding: 40 }
+    return { name: 'preset', padding: 40 }
   }
-  if (mode === 'tiers') {
+  if (mode === 'tiers' || mode === 'tiers-vertical') {
     return {
       name: 'breadthfirst',
       directed: false,
-      fit: true,
       padding: 40,
       spacingFactor: 1,
       idealEdgeLength: () => 100,
       avoidOverlap: true,
-      transform: (_node: unknown, pos: { x: number; y: number }) => ({ x: pos.y, y: pos.x }),
+      ...(mode === 'tiers' ? {
+        transform: (_node: unknown, pos: { x: number; y: number }) => ({ x: pos.y, y: pos.x }),
+      } : {}),
     }
   }
   if (mode === 'concentric') {
     return {
       name: 'concentric',
-      fit: true,
       padding: 40,
       minNodeSpacing: 40,
       avoidOverlap: true,
@@ -364,7 +366,6 @@ function buildLayoutConfig(mode: LayoutMode) {
     nodeRepulsion: () => 8000,
     idealEdgeLength: () => 120,
     randomize: false,
-    fit: true,
   }
 }
 
@@ -430,12 +431,15 @@ function lockAllNodes() {
   graphStore.setPinnedPositions(positions)
 }
 
-function runLayout(mode: LayoutMode, opts: { lock: boolean } = { lock: false }) {
+function runLayout(mode: LayoutMode, opts: { lock: boolean; fit?: boolean } = { lock: false }) {
   if (!cy) return
   if (mode === 'none' || opts.lock) {
-    cy.layout({ name: 'preset', fit: true, padding: 40 }).run()
+    cy.layout({ name: 'preset', padding: 40 }).run()
   } else {
     cy.layout(buildLayoutConfig(mode) as cytoscape.LayoutOptions).run()
+  }
+  if (opts.fit) {
+    cy.fit(undefined, 40)
   }
   if (opts.lock) applyPinnedPositions()
 }
@@ -444,23 +448,34 @@ watch(elements, () => {
   if (!cy) return
   cy.json({ elements: elements.value })
   const scanId = graphStore.currentScanId
+  const saved = scanId ? graphStore.getSavedViewport(scanId) : null
   if (graphStore.layoutLocked) {
     if (Object.keys(graphStore.pinnedPositions).length > 0) {
       applyPinnedPositions()
     } else {
       releaseAllNodes()
-      runLayout(graphStore.layoutMode, { lock: false })
+      runLayout(graphStore.layoutMode, { lock: false, fit: !saved })
     }
-    fitAfterScanLoad(scanId)
+    if (saved) {
+      cy.zoom(saved.zoom)
+      cy.pan(saved.pan)
+    } else if (scanId) {
+      cy.fit(undefined, 40)
+    }
     return
   }
   if (graphStore.pinnedPositions && Object.keys(graphStore.pinnedPositions).length > 0) {
     applySavedPositions()
-    fitAfterScanLoad(scanId)
+    if (saved) {
+      cy.zoom(saved.zoom)
+      cy.pan(saved.pan)
+    } else if (scanId) {
+      cy.fit(undefined, 40)
+    }
     return
   }
   releaseAllNodes()
-  runLayout(graphStore.layoutMode, { lock: false })
+  runLayout(graphStore.layoutMode, { lock: false, fit: !saved })
 })
 
 watch(
@@ -496,6 +511,15 @@ function onKeydown(e: KeyboardEvent) {
     if (graphStore.layoutLocked) return
     e.preventDefault()
     onRelayout()
+  } else if (e.key === '+' || e.key === '=') {
+    e.preventDefault()
+    zoomGraph(1.2)
+  } else if (e.key === '-') {
+    e.preventDefault()
+    zoomGraph(1 / 1.2)
+  } else if (key === '0') {
+    e.preventDefault()
+    resetZoom()
   }
 }
 
@@ -549,6 +573,7 @@ defineExpose({ fitGraph })
           }"
         >
           <option value="tiers">Tiers (by category)</option>
+          <option value="tiers-vertical">Tiers (top to bottom)</option>
           <option value="concentric">Concentric (by category)</option>
           <option value="force">Force (cose)</option>
           <option value="none">None (keep positions)</option>
@@ -563,6 +588,9 @@ defineExpose({ fitGraph })
         </button>
       </div>
       <div class="graph-controls-group">
+        <button @click="zoomGraph(1.2)" class="control-btn zoom-btn" title="Zoom in (+)">+</button>
+        <button @click="zoomGraph(1 / 1.2)" class="control-btn zoom-btn" title="Zoom out (-)">-</button>
+        <button @click="resetZoom" class="control-btn" title="Reset zoom to 100% and center (0)">Reset</button>
         <button @click="fitGraph" class="control-btn" title="Fit to screen (F)">
           Fit
         </button>
