@@ -4,7 +4,7 @@ import cytoscape, { type Core, type EventObject } from 'cytoscape'
 import { useGraphStore } from '../stores/graph'
 import { useScanStore } from '../stores/scan'
 import { useSettingsStore } from '../stores/settings'
-import { setScanLayout } from '../api/client'
+import { getRegions, setScanLayout } from '../api/client'
 import { tierOf, type LayoutMode } from '../stores/graph'
 import { theme } from '../config/theme'
 import Icon from './Icon.vue'
@@ -24,8 +24,11 @@ const typeDropdownOpen = ref(false)
 const tagDropdownOpen = ref(false)
 const advancedDropdownOpen = ref(false)
 const showAddRule = ref(false)
+const showAddTag = ref(false)
 const valueDropdownOpen = ref(false)
 const newRule = ref({ field: '', value: '' })
+const newTag = ref({ key: '', value: '' })
+const regionLabels = ref<Record<string, string>>({})
 
 function handleClickOutside(e: MouseEvent) {
   const target = e.target as Node
@@ -49,7 +52,13 @@ function handleClickOutside(e: MouseEvent) {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    const regions = await getRegions(true)
+    regionLabels.value = Object.fromEntries(regions.map(region => [region.value, region.label]))
+  } catch {
+    // Region codes remain available from the graph when metadata cannot be loaded.
+  }
   setTimeout(() => {
     document.addEventListener('mousedown', handleClickOutside)
   }, 0)
@@ -94,6 +103,19 @@ function clearRegions() {
   graphStore.setRegionFilter([])
 }
 
+function getRegionLabel(region: string): string {
+  return regionLabels.value[region] || region
+}
+
+const regionFilterLabel = computed(() => {
+  if (graphStore.regionFilter.length === 0) return 'All'
+  if (graphStore.regionFilter.length > 1) return `${graphStore.regionFilter.length} selected`
+
+  const region = graphStore.regionFilter[0]
+  const label = getRegionLabel(region)
+  return label === region ? region : `${label} (${region})`
+})
+
 function toggleType(t: string) {
   const current = graphStore.typeFilter
   if (current.includes(t)) {
@@ -107,13 +129,34 @@ function clearTypes() {
   graphStore.setTypeFilter([])
 }
 
-function toggleTag(tag: string) {
-  const current = graphStore.tagFilter
-  if (current.includes(tag)) {
-    graphStore.setTagFilter(current.filter(t => t !== tag))
-  } else {
-    graphStore.setTagFilter([...current, tag])
+function addTag() {
+  if (!newTag.value.key || !newTag.value.value) return
+
+  const tag = `${newTag.value.key}=${newTag.value.value}`
+  if (!graphStore.tagFilter.includes(tag)) {
+    graphStore.setTagFilter([...graphStore.tagFilter, tag])
   }
+  newTag.value = { key: '', value: '' }
+  showAddTag.value = false
+}
+
+function removeTag(tag: string) {
+  graphStore.setTagFilter(graphStore.tagFilter.filter(item => item !== tag))
+}
+
+function cancelTag() {
+  newTag.value = { key: '', value: '' }
+  showAddTag.value = false
+}
+
+function tagKey(tag: string): string {
+  const separator = tag.indexOf('=')
+  return separator >= 0 ? tag.slice(0, separator) : tag
+}
+
+function tagValue(tag: string): string {
+  const separator = tag.indexOf('=')
+  return separator >= 0 ? tag.slice(separator + 1) : ''
 }
 
 function clearTags() {
@@ -648,16 +691,19 @@ defineExpose({ fitGraph })
     <div class="graph-overlay" v-if="graphStore.regions.length > 0 || graphStore.types.length > 0 || graphStore.availableTags.length > 0">
       <div class="filter-group" v-if="graphStore.regions.length > 0" ref="regionFilterRef">
         <button class="overlay-btn" @click="regionDropdownOpen = !regionDropdownOpen">
-          🌍 Region ({{ graphStore.regionFilter.length || 'All' }})
+          🌍 Region ({{ regionFilterLabel }})
         </button>
         <div v-if="regionDropdownOpen" class="filter-dropdown">
-          <label v-for="region in graphStore.regions" :key="region" class="filter-option">
+          <label v-for="region in graphStore.regions" :key="region" class="filter-option region-filter-option">
             <input
               type="checkbox"
               :checked="graphStore.regionFilter.includes(region)"
               @change="toggleRegion(region)"
             />
-            {{ region }}
+            <span class="region-option-text">
+              <span>{{ getRegionLabel(region) }}</span>
+              <span v-if="getRegionLabel(region) !== region" class="region-code">{{ region }}</span>
+            </span>
           </label>
           <button class="clear-btn" @click="clearRegions" v-if="graphStore.regionFilter.length">
             Clear
@@ -686,20 +732,33 @@ defineExpose({ fitGraph })
         <button class="overlay-btn" @click="tagDropdownOpen = !tagDropdownOpen">
           🏷️ Tags ({{ graphStore.tagFilter.length || 'All' }})
         </button>
-        <div v-if="tagDropdownOpen" class="filter-dropdown">
-          <div class="tag-section" v-for="tagKey in graphStore.availableTagKeys" :key="tagKey">
-            <div class="tag-key">{{ tagKey }}</div>
-            <label v-for="val in graphStore.getTagValues(tagKey)" :key="val" class="filter-option">
-              <input
-                type="checkbox"
-                :checked="graphStore.tagFilter.includes(`${tagKey}=${val}`)"
-                @change="toggleTag(`${tagKey}=${val}`)"
-              />
-              {{ val }}
-            </label>
+        <div v-if="tagDropdownOpen" class="filter-dropdown advanced-dropdown">
+          <div class="filter-rule" v-for="tag in graphStore.tagFilter" :key="tag">
+            <span class="rule-field">{{ tagKey(tag) }}</span>
+            <span class="rule-value">{{ tagValue(tag) }}</span>
+            <button class="rule-remove" @click="removeTag(tag)">×</button>
+          </div>
+          <div class="add-rule" v-if="!showAddTag">
+            <button class="add-btn" @click="showAddTag = true">+ Add Filter</button>
+          </div>
+          <div class="add-rule-form" v-else>
+            <select v-model="newTag.key" class="rule-select" @change="newTag.value = ''">
+              <option value="" disabled>Select tag key</option>
+              <option v-for="key in graphStore.availableTagKeys" :key="key" :value="key">
+                {{ key }}
+              </option>
+            </select>
+            <select v-model="newTag.value" class="rule-select" :disabled="!newTag.key">
+              <option value="" disabled>Select tag value</option>
+              <option v-for="value in graphStore.getTagValues(newTag.key)" :key="value" :value="value">
+                {{ value }}
+              </option>
+            </select>
+            <button class="add-btn" @click="addTag" :disabled="!newTag.key || !newTag.value">Add</button>
+            <button class="cancel-btn" @click="cancelTag">Cancel</button>
           </div>
           <button class="clear-btn" @click="clearTags" v-if="graphStore.tagFilter.length">
-            Clear
+            Clear All
           </button>
         </div>
       </div>
@@ -929,6 +988,25 @@ defineExpose({ fitGraph })
   background: var(--color-bg-soft);
 }
 
+.region-filter-option {
+  min-width: 260px;
+}
+
+.region-option-text {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.region-code {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: calc(11px * var(--app-font-scale));
+}
+
 .match-toggle {
   display: flex;
   gap: 4px;
@@ -1022,6 +1100,8 @@ defineExpose({ fitGraph })
 
 .rule-select,
 .rule-input {
+  width: 100%;
+  box-sizing: border-box;
   padding: 6px 8px;
   border: 1px solid var(--border, #ddd);
   border: 1px solid var(--color-border-lighter);
@@ -1079,6 +1159,7 @@ defineExpose({ fitGraph })
 
 .value-input-wrapper {
   position: relative;
+  width: 100%;
 }
 
 .value-dropdown {

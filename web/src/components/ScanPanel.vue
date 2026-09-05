@@ -146,7 +146,7 @@ const regionButtonLabel = computed(() => {
   if (n === 0) return 'All Regions'
   if (n === 1) {
     const found = regions.value.find(r => r.value === selectedRegions.value[0])
-    return found ? found.label : selectedRegions.value[0]
+    return found ? `${found.label} (${found.value})` : selectedRegions.value[0]
   }
   return `${n} regions`
 })
@@ -186,7 +186,10 @@ const regionButtonLabel = computed(() => {
                   :checked="selectedRegions.includes(r.value)"
                   @change="toggleRegion(r.value)"
                 />
-                <span>{{ r.label }}</span>
+                <span class="region-option-text">
+                  <span>{{ r.label }}</span>
+                  <span class="region-code">{{ r.value }}</span>
+                </span>
               </label>
             </div>
             <div class="region-actions">
@@ -452,6 +455,22 @@ const regionButtonLabel = computed(() => {
 .region-option input {
   cursor: pointer;
   margin: 0;
+}
+
+.region-option-text {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.region-code {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: calc(11px * var(--app-font-scale));
 }
 
 .region-actions {

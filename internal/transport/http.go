@@ -127,6 +127,10 @@ func NewRouter(discovery service.DiscoveryService, graph service.GraphService, c
 			writeJSON(w, http.StatusOK, []service.RegionInfo{})
 			return
 		}
+		if r.URL.Query().Get("catalog") == "true" {
+			writeJSON(w, http.StatusOK, regions.GetRegionCatalog())
+			return
+		}
 		writeJSON(w, http.StatusOK, regions.GetRegions(r.Context()))
 	})
 

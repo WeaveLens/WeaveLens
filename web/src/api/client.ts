@@ -132,8 +132,9 @@ export interface RegionInfo {
   label: string
 }
 
-export async function getRegions(): Promise<RegionInfo[]> {
-  const response = await fetch(`${API_BASE}/regions`)
+export async function getRegions(catalog = false): Promise<RegionInfo[]> {
+  const query = catalog ? '?catalog=true' : ''
+  const response = await fetch(`${API_BASE}/regions${query}`)
   return handleResponse<RegionInfo[]>(response)
 }
 
