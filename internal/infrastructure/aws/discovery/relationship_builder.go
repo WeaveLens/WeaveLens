@@ -18,204 +18,82 @@ func (b *DefaultRelationshipBuilder) Build(resources []*resource.Resource) ([]*r
 	var relationships []*relationship.Relationship
 
 	resourceMap := make(map[string]*resource.Resource)
+	aliases := make(map[string]string)
 	for _, res := range resources {
-		resourceMap[string(res.ID())] = res
+		id := string(res.ID())
+		resourceMap[id] = res
+		aliases[id] = id
+		if res.ARN() != "" {
+			aliases[res.ARN()] = id
+		}
+		aliasKeys := []string{"arn", "dns_name", "topic_arn"}
+		switch res.Type() {
+		case "KMSKey":
+			aliasKeys = append(aliasKeys, "key_arn")
+		case "StepFunction":
+			aliasKeys = append(aliasKeys, "state_machine_arn")
+		case "TargetGroup":
+			aliasKeys = append(aliasKeys, "target_group_arn")
+		case "Listener":
+			aliasKeys = append(aliasKeys, "listener_arn")
+		}
+		for _, key := range aliasKeys {
+			if value := strings.TrimSuffix(strings.TrimSpace(res.Metadata()[key]), "."); value != "" {
+				aliases[value] = id
+			}
+		}
 	}
 
 	for _, res := range resources {
-		addMetadataRelations(&relationships, res, resourceMap, "subnet_ids", relationship.RelationshipAssociatedWith)
-		addMetadataRelations(&relationships, res, resourceMap, "security_group_ids", relationship.RelationshipAssociatedWith)
-		addMetadataRelations(&relationships, res, resourceMap, "referenced_group_ids", relationship.RelationshipConnectsTo)
-		addMetadataRelations(&relationships, res, resourceMap, "route_target_ids", relationship.RelationshipRoutesTo)
-		addMetadataRelations(&relationships, res, resourceMap, "target_ids", relationship.RelationshipTargets)
-		addMetadataRelations(&relationships, res, resourceMap, "subscription_target_ids", relationship.RelationshipTargets)
-		addMetadataRelations(&relationships, res, resourceMap, "event_source_ids", relationship.RelationshipDependsOn)
-		addMetadataRelations(&relationships, res, resourceMap, "iam_role_id", relationship.RelationshipDependsOn)
-		addMetadataRelations(&relationships, res, resourceMap, "route_table_ids", relationship.RelationshipAssociatedWith)
-		addMetadataRelations(&relationships, res, resourceMap, "vpc_ids", relationship.RelationshipConnectsTo)
-		addMetadataRelations(&relationships, res, resourceMap, "resource_id", relationship.RelationshipAssociatedWith)
-
-		switch res.Type() {
-		case "Subnet":
-			if vpcID, ok := res.Metadata()["vpc_id"]; ok && vpcID != "" {
-				if _, exists := resourceMap[vpcID]; exists {
-					rel, err := relationship.NewRelationship(
-						relationship.RelationshipID(fmt.Sprintf("rel-%s-%s", vpcID, res.ID())),
-						vpcID,
-						string(res.ID()),
-						relationship.RelationshipContains,
-					)
-					if err == nil {
-						relationships = append(relationships, rel)
-					}
-				}
+		for _, rule := range metadataRules {
+			addMetadataRelations(&relationships, res, resourceMap, aliases, rule.MetadataKey, rule.RelationType, false)
+		}
+		for _, rule := range typeRules {
+			if string(res.Type()) == rule.SourceType {
+				reverse := rule.RelationType == relationship.RelationshipContains
+				addMetadataRelations(&relationships, res, resourceMap, aliases, rule.MetadataKey, rule.RelationType, reverse)
 			}
-
-		case "EC2":
-			if subnetID, ok := res.Metadata()["subnet_id"]; ok && subnetID != "" {
-				if _, exists := resourceMap[subnetID]; exists {
-					rel, err := relationship.NewRelationship(
-						relationship.RelationshipID(fmt.Sprintf("rel-%s-%s", subnetID, res.ID())),
-						subnetID,
-						string(res.ID()),
-						relationship.RelationshipContains,
-					)
-					if err == nil {
-						relationships = append(relationships, rel)
-					}
-				}
-			}
-
-		case "RouteTable":
-			if vpcID, ok := res.Metadata()["vpc_id"]; ok && vpcID != "" {
-				if _, exists := resourceMap[vpcID]; exists {
-					rel, err := relationship.NewRelationship(
-						relationship.RelationshipID(fmt.Sprintf("rel-%s-%s", vpcID, res.ID())),
-						vpcID,
-						string(res.ID()),
-						relationship.RelationshipContains,
-					)
-					if err == nil {
-						relationships = append(relationships, rel)
-					}
-				}
-			}
-
-		case "InternetGateway":
-			if vpcID, ok := res.Metadata()["vpc_id"]; ok && vpcID != "" {
-				if _, exists := resourceMap[vpcID]; exists {
-					rel, err := relationship.NewRelationship(
-						relationship.RelationshipID(fmt.Sprintf("rel-%s-%s", vpcID, res.ID())),
-						vpcID,
-						string(res.ID()),
-						relationship.RelationshipContains,
-					)
-					if err == nil {
-						relationships = append(relationships, rel)
-					}
-				}
-			}
-
-		case "NATGateway":
-			if vpcID, ok := res.Metadata()["vpc_id"]; ok && vpcID != "" {
-				if _, exists := resourceMap[vpcID]; exists {
-					rel, err := relationship.NewRelationship(
-						relationship.RelationshipID(fmt.Sprintf("rel-%s-%s", vpcID, res.ID())),
-						vpcID,
-						string(res.ID()),
-						relationship.RelationshipContains,
-					)
-					if err == nil {
-						relationships = append(relationships, rel)
-					}
-				}
-			}
-			if subnetID, ok := res.Metadata()["subnet_id"]; ok && subnetID != "" {
-				if _, exists := resourceMap[subnetID]; exists {
-					rel, err := relationship.NewRelationship(
-						relationship.RelationshipID(fmt.Sprintf("rel-%s-%s", subnetID, res.ID())),
-						subnetID,
-						string(res.ID()),
-						relationship.RelationshipContains,
-					)
-					if err == nil {
-						relationships = append(relationships, rel)
-					}
-				}
-			}
-
-		case "SecurityGroup":
-			if vpcID, ok := res.Metadata()["vpc_id"]; ok && vpcID != "" {
-				if _, exists := resourceMap[vpcID]; exists {
-					rel, err := relationship.NewRelationship(
-						relationship.RelationshipID(fmt.Sprintf("rel-%s-%s", vpcID, res.ID())),
-						vpcID,
-						string(res.ID()),
-						relationship.RelationshipContains,
-					)
-					if err == nil {
-						relationships = append(relationships, rel)
-					}
-				}
-			}
-
-		case "ALB":
-			if vpcID, ok := res.Metadata()["vpc_id"]; ok && vpcID != "" {
-				if _, exists := resourceMap[vpcID]; exists {
-					rel, err := relationship.NewRelationship(
-						relationship.RelationshipID(fmt.Sprintf("rel-%s-%s", vpcID, res.ID())),
-						vpcID,
-						string(res.ID()),
-						relationship.RelationshipBelongsTo,
-					)
-					if err == nil {
-						relationships = append(relationships, rel)
-					}
-				}
-			}
-
-		case "RDS":
-			if vpcID, ok := res.Metadata()["vpc_id"]; ok && vpcID != "" {
-				if _, exists := resourceMap[vpcID]; exists {
-					rel, err := relationship.NewRelationship(
-						relationship.RelationshipID(fmt.Sprintf("rel-%s-%s", vpcID, res.ID())),
-						vpcID,
-						string(res.ID()),
-						relationship.RelationshipBelongsTo,
-					)
-					if err == nil {
-						relationships = append(relationships, rel)
-					}
-				}
-			}
-
-		case "NetworkInterface":
-			addSingleMetadataRelation(&relationships, res, resourceMap, "vpc_id", relationship.RelationshipAssociatedWith)
-			addSingleMetadataRelation(&relationships, res, resourceMap, "subnet_id", relationship.RelationshipAssociatedWith)
-
-		case "EBS":
-			addMetadataRelations(&relationships, res, resourceMap, "instance_ids", relationship.RelationshipAssociatedWith)
 		}
 	}
 
 	return relationships, nil
 }
 
-func addSingleMetadataRelation(
-	relationships *[]*relationship.Relationship,
-	source *resource.Resource,
-	resourceMap map[string]*resource.Resource,
-	metadataKey string,
-	relationType relationship.RelationshipType,
-) {
-	addMetadataRelations(relationships, source, resourceMap, metadataKey, relationType)
-}
-
 func addMetadataRelations(
 	relationships *[]*relationship.Relationship,
 	source *resource.Resource,
 	resourceMap map[string]*resource.Resource,
+	aliases map[string]string,
 	metadataKey string,
 	relationType relationship.RelationshipType,
+	reverse bool,
 ) {
 	ids := strings.Split(source.Metadata()[metadataKey], ",")
 	seen := make(map[string]struct{}, len(ids))
 	for _, targetID := range ids {
-		targetID = strings.TrimSpace(targetID)
-		if targetID == "" || targetID == string(source.ID()) {
+		targetID = strings.TrimSuffix(strings.TrimSpace(targetID), ".")
+		if targetID == "" {
 			continue
 		}
-		if _, duplicate := seen[targetID]; duplicate {
+		canonicalTargetID, exists := aliases[targetID]
+		if !exists || canonicalTargetID == string(source.ID()) {
 			continue
 		}
-		seen[targetID] = struct{}{}
-		if _, exists := resourceMap[targetID]; !exists {
+		if _, exists := resourceMap[canonicalTargetID]; !exists {
 			continue
+		}
+		if _, duplicate := seen[canonicalTargetID]; duplicate {
+			continue
+		}
+		seen[canonicalTargetID] = struct{}{}
+		sourceID := string(source.ID())
+		if reverse {
+			sourceID, canonicalTargetID = canonicalTargetID, sourceID
 		}
 		rel, err := relationship.NewRelationship(
-			relationship.RelationshipID(fmt.Sprintf("rel-%s-%s-%s", source.ID(), metadataKey, targetID)),
-			string(source.ID()),
-			targetID,
+			relationship.RelationshipID(fmt.Sprintf("rel-%s-%s-%s", sourceID, metadataKey, canonicalTargetID)),
+			sourceID,
+			canonicalTargetID,
 			relationType,
 		)
 		if err == nil {

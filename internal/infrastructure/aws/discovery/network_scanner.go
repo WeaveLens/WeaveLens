@@ -8,7 +8,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/elip/WeaveLens/internal/domain/resource"
+	awsclient "github.com/elip/WeaveLens/internal/infrastructure/aws/client"
 )
+
+func init() {
+	RegisterScanner("Network", func(c *awsclient.Clients, region string) Scanner { return NewNetworkScanner(c.EC2, region) })
+}
 
 type NetworkScanner struct {
 	client EC2API

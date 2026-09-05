@@ -7,7 +7,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/elasticache"
 	"github.com/elip/WeaveLens/internal/domain/resource"
+	"github.com/elip/WeaveLens/internal/infrastructure/aws/client"
 )
+
+func init() {
+	RegisterScanner("Elasticache", func(c *client.Clients, region string) Scanner { return NewElasticacheScanner(c.Elasticache, region) })
+}
 
 type ElasticacheScanner struct {
 	client ElasticacheAPI

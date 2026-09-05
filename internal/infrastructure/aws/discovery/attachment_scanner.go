@@ -9,6 +9,10 @@ import (
 	"github.com/elip/WeaveLens/internal/infrastructure/aws/client"
 )
 
+func init() {
+	RegisterScanner("NetworkAttachments", func(c *client.Clients, region string) Scanner { return NewAttachmentScanner(c.EC2Attachments, region) })
+}
+
 // AttachmentScanner discovers network objects whose primary purpose is joining
 // VPCs or routing traffic between them.
 type AttachmentScanner struct {
@@ -159,6 +163,9 @@ func (s *AttachmentScanner) scanNetworkInterfaces(ctx context.Context) ([]*resou
 				continue
 			}
 			metadata := map[string]string{"vpc_id": safePtr(iface.VpcId), "subnet_id": safePtr(iface.SubnetId)}
+			if iface.Attachment != nil && iface.Attachment.InstanceId != nil {
+				metadata["instance_id"] = *iface.Attachment.InstanceId
+			}
 			var groups []string
 			for _, group := range iface.Groups {
 				if group.GroupId != nil {

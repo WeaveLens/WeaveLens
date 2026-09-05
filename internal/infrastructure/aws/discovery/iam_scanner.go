@@ -6,7 +6,12 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/elip/WeaveLens/internal/domain/resource"
+	"github.com/elip/WeaveLens/internal/infrastructure/aws/client"
 )
+
+func init() {
+	RegisterScanner("IAM", func(c *client.Clients, region string) Scanner { return NewIAMScanner(c.IAM, region) })
+}
 
 type IAMScanner struct {
 	client IAMAPI

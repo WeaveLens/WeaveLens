@@ -6,7 +6,12 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/elip/WeaveLens/internal/domain/resource"
+	"github.com/elip/WeaveLens/internal/infrastructure/aws/client"
 )
+
+func init() {
+	RegisterScanner("S3", func(c *client.Clients, _ string) Scanner { return NewS3Scanner(c.S3) })
+}
 
 type S3Scanner struct {
 	client S3API

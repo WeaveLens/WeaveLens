@@ -14,27 +14,6 @@ type ServiceConfigInput struct {
 	AWSConfig aws.Config
 }
 
-func buildRegionScanners(clients *client.Clients, region string) []Scanner {
-	return []Scanner{
-		NewNetworkScanner(clients.EC2, region),
-		NewAttachmentScanner(clients.EC2Attachments, region),
-		NewComputeScanner(clients.EC2, region),
-		NewDatabaseScanner(clients.RDS, region),
-		NewLoadBalancerScanner(clients.ELBv2, region),
-		NewS3Scanner(clients.S3),
-		NewIAMScanner(clients.IAM, region),
-		NewLambdaScanner(clients.Lambda, region),
-		NewSQSScanner(clients.SQS, region),
-		NewSNSScanner(clients.SNS, region),
-		NewECRScanner(clients.ECR, region),
-		NewSecretsManagerScanner(clients.SecretsMgr, region),
-		NewDynamoDBScanner(clients.DynamoDB, region),
-		NewElasticacheScanner(clients.Elasticache, region),
-		NewCloudWatchLogsScanner(clients.CloudWatchLogs, region),
-		NewEventBridgeScanner(clients.EventBridge, region),
-	}
-}
-
 func availableRegions(ctx context.Context, cfg aws.Config) ([]string, error) {
 	describeCfg := cfg
 	if describeCfg.Region == "" {
@@ -65,7 +44,7 @@ func NewServiceFromConfigWithResilience(cfg ServiceConfigInput, resilienceCfg Se
 		regionalCfg := cfg.AWSConfig
 		regionalCfg.Region = region
 		regionalClients := client.NewFactory().BuildClients(regionalCfg)
-		return buildRegionScanners(regionalClients, region), nil
+		return BuildRegionScanners(regionalClients, region), nil
 	}
 
 	return NewServiceDynamic(cfg.AWSConfig, factory, NewRelationshipBuilder(), resilienceCfg)

@@ -108,3 +108,76 @@ func TestRelationshipBuilder_AttachmentMetadata(t *testing.T) {
 		t.Errorf("missing attachment relationship %s", key)
 	}
 }
+
+func TestRelationshipBuilder_LoadBalancerRelationships(t *testing.T) {
+	lb, _ := resource.NewResource("lb-arn", "ALB", resource.CategoryNetwork, "lb")
+	instance, _ := resource.NewResource("i-123", "EC2", resource.CategoryCompute, "instance")
+	targetGroup, _ := resource.NewResource("tg-arn", "TargetGroup", resource.CategoryNetwork, "targets",
+		resource.WithMetadata(map[string]string{"load_balancer_arn": "lb-arn", "instance_ids": "i-123"}))
+	listener, _ := resource.NewResource("listener-arn", "Listener", resource.CategoryNetwork, "HTTPS:443",
+		resource.WithMetadata(map[string]string{"default_target_group_arn": "tg-arn"}))
+
+	relationships, err := NewRelationshipBuilder().Build([]*resource.Resource{lb, instance, targetGroup, listener})
+	if err != nil {
+		t.Fatalf("Build() unexpected error: %v", err)
+	}
+
+	wanted := map[string]relationship.RelationshipType{
+		"tg-arn->lb-arn":       relationship.RelationshipBelongsTo,
+		"tg-arn->i-123":        relationship.RelationshipTargets,
+		"listener-arn->tg-arn": relationship.RelationshipTargets,
+	}
+	for _, rel := range relationships {
+		key := rel.SourceID() + "->" + rel.TargetID()
+		if expected, ok := wanted[key]; ok && rel.Type() == expected {
+			delete(wanted, key)
+		}
+	}
+	for key := range wanted {
+		t.Errorf("missing load balancer relationship %s", key)
+	}
+}
+
+func TestRelationshipBuilder_EC2NetworkInterfaceRelationships(t *testing.T) {
+	instance, _ := resource.NewResource("i-123", "EC2", resource.CategoryCompute, "instance",
+		resource.WithMetadata(map[string]string{"network_interface_ids": "eni-123"}))
+	interfaceResource, _ := resource.NewResource("eni-123", "NetworkInterface", resource.CategoryNetwork, "interface",
+		resource.WithMetadata(map[string]string{"instance_id": "i-123"}))
+
+	relationships, err := NewRelationshipBuilder().Build([]*resource.Resource{instance, interfaceResource})
+	if err != nil {
+		t.Fatalf("Build() unexpected error: %v", err)
+	}
+
+	wanted := map[string]bool{"i-123->eni-123": false, "eni-123->i-123": false}
+	for _, rel := range relationships {
+		key := rel.SourceID() + "->" + rel.TargetID()
+		if _, ok := wanted[key]; ok && rel.Type() == relationship.RelationshipAssociatedWith {
+			wanted[key] = true
+		}
+	}
+	for key, found := range wanted {
+		if !found {
+			t.Errorf("missing EC2/ENI relationship %s", key)
+		}
+	}
+}
+
+func TestRelationshipBuilder_ResolvesDNSAliasesOnce(t *testing.T) {
+	distribution, _ := resource.NewResource("distribution-id", "CloudFrontDistribution", resource.CategoryNetwork, "distribution",
+		resource.WithMetadata(map[string]string{"dns_name": "example.cloudfront.net"}))
+	record, _ := resource.NewResource("zone:example.com:A", "Route53Record", resource.CategoryNetwork, "example.com",
+		resource.WithMetadata(map[string]string{"alias_target": "example.cloudfront.net.,example.cloudfront.net"}))
+
+	relationships, err := NewRelationshipBuilder().Build([]*resource.Resource{distribution, record})
+	if err != nil {
+		t.Fatalf("Build() unexpected error: %v", err)
+	}
+	if len(relationships) != 1 {
+		t.Fatalf("Build() returned %d relationships, want 1", len(relationships))
+	}
+	rel := relationships[0]
+	if rel.SourceID() != string(record.ID()) || rel.TargetID() != string(distribution.ID()) || rel.Type() != relationship.RelationshipTargets {
+		t.Errorf("relationship = %s -> %s (%s), want %s -> %s (%s)", rel.SourceID(), rel.TargetID(), rel.Type(), record.ID(), distribution.ID(), relationship.RelationshipTargets)
+	}
+}

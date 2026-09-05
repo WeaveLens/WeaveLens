@@ -7,7 +7,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	sqstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/elip/WeaveLens/internal/domain/resource"
+	"github.com/elip/WeaveLens/internal/infrastructure/aws/client"
 )
+
+func init() {
+	RegisterScanner("SQS", func(c *client.Clients, region string) Scanner { return NewSQSScanner(c.SQS, region) })
+}
 
 type SQSScanner struct {
 	client SQSAPI

@@ -6,7 +6,12 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/elip/WeaveLens/internal/domain/resource"
+	"github.com/elip/WeaveLens/internal/infrastructure/aws/client"
 )
+
+func init() {
+	RegisterScanner("ECR", func(c *client.Clients, region string) Scanner { return NewECRScanner(c.ECR, region) })
+}
 
 type ECRScanner struct {
 	client ECRAPI

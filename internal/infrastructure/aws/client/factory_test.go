@@ -10,7 +10,7 @@ import (
 func TestFactoryBuildClients(t *testing.T) {
 	factory := NewFactory()
 	cfg := aws.Config{
-		Region: "us-east-1",
+		Region:      "us-east-1",
 		Credentials: aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider("test", "test", "test")),
 	}
 
@@ -29,5 +29,18 @@ func TestFactoryBuildClients(t *testing.T) {
 	}
 	if clients.STS == nil {
 		t.Error("BuildClients() STS client is nil")
+	}
+	newClients := map[string]any{
+		"APIGateway":     clients.APIGateway,
+		"CloudFront":     clients.CloudFront,
+		"KMS":            clients.KMS,
+		"Route53":        clients.Route53,
+		"StepFunctions":  clients.StepFunctions,
+		"TransitGateway": clients.TransitGateway,
+	}
+	for name, serviceClient := range newClients {
+		if serviceClient == nil {
+			t.Errorf("BuildClients() %s client is nil", name)
+		}
 	}
 }

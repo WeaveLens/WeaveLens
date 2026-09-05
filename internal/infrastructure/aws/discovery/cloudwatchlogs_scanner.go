@@ -7,7 +7,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/elip/WeaveLens/internal/domain/resource"
+	"github.com/elip/WeaveLens/internal/infrastructure/aws/client"
 )
+
+func init() {
+	RegisterScanner("CloudWatchLogs", func(c *client.Clients, region string) Scanner {
+		return NewCloudWatchLogsScanner(c.CloudWatchLogs, region)
+	})
+}
 
 type CloudWatchLogsScanner struct {
 	client CloudWatchLogsAPI

@@ -7,7 +7,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/elip/WeaveLens/internal/domain/resource"
+	"github.com/elip/WeaveLens/internal/infrastructure/aws/client"
 )
+
+func init() {
+	RegisterScanner("DynamoDB", func(c *client.Clients, region string) Scanner { return NewDynamoDBScanner(c.DynamoDB, region) })
+}
 
 type DynamoDBScanner struct {
 	client DynamoDBAPI

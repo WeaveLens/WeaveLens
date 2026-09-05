@@ -7,7 +7,12 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/elip/WeaveLens/internal/domain/resource"
+	"github.com/elip/WeaveLens/internal/infrastructure/aws/client"
 )
+
+func init() {
+	RegisterScanner("EC2", func(c *client.Clients, region string) Scanner { return NewComputeScanner(c.EC2, region) })
+}
 
 type ComputeScanner struct {
 	client EC2ScannerAPI
@@ -76,6 +81,15 @@ func (s *ComputeScanner) Scan(ctx context.Context) ([]*resource.Resource, error)
 				}
 				if len(securityGroupIDs) > 0 {
 					metadata["security_group_ids"] = strings.Join(securityGroupIDs, ",")
+				}
+				var networkInterfaceIDs []string
+				for _, networkInterface := range instance.NetworkInterfaces {
+					if networkInterface.NetworkInterfaceId != nil {
+						networkInterfaceIDs = append(networkInterfaceIDs, *networkInterface.NetworkInterfaceId)
+					}
+				}
+				if len(networkInterfaceIDs) > 0 {
+					metadata["network_interface_ids"] = strings.Join(networkInterfaceIDs, ",")
 				}
 
 				res, err := resource.NewResource(

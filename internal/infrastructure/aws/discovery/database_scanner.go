@@ -7,7 +7,12 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/elip/WeaveLens/internal/domain/resource"
+	"github.com/elip/WeaveLens/internal/infrastructure/aws/client"
 )
+
+func init() {
+	RegisterScanner("RDS", func(c *client.Clients, region string) Scanner { return NewDatabaseScanner(c.RDS, region) })
+}
 
 type DatabaseScanner struct {
 	client RDSAPI

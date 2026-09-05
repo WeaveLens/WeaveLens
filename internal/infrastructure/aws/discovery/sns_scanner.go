@@ -8,7 +8,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/elip/WeaveLens/internal/domain/resource"
+	"github.com/elip/WeaveLens/internal/infrastructure/aws/client"
 )
+
+func init() {
+	RegisterScanner("SNS", func(c *client.Clients, region string) Scanner { return NewSNSScanner(c.SNS, region) })
+}
 
 type SNSScanner struct {
 	client SNSAPI

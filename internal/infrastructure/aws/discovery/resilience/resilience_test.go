@@ -172,6 +172,34 @@ func TestRateLimiter_ContextCancellation(t *testing.T) {
 	}
 }
 
+func TestRateLimiter_Close(t *testing.T) {
+	rl := NewRateLimiter(1, 1)
+	if err := rl.Wait(context.Background()); err != nil {
+		t.Fatalf("initial Wait() unexpected error: %v", err)
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- rl.Wait(context.Background())
+	}()
+
+	rl.Close()
+	rl.Close()
+
+	select {
+	case err := <-errCh:
+		if !errors.Is(err, errRateLimiterClosed) {
+			t.Fatalf("blocked Wait() error = %v, want %v", err, errRateLimiterClosed)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Close() did not unblock Wait()")
+	}
+
+	if err := rl.Wait(context.Background()); !errors.Is(err, errRateLimiterClosed) {
+		t.Fatalf("Wait() after Close() error = %v, want %v", err, errRateLimiterClosed)
+	}
+}
+
 func TestWorkerPool_ExecutesTasks(t *testing.T) {
 	pool := NewWorkerPool(4)
 	ctx := context.Background()

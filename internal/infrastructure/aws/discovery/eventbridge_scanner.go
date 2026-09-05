@@ -8,7 +8,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	"github.com/elip/WeaveLens/internal/domain/resource"
+	"github.com/elip/WeaveLens/internal/infrastructure/aws/client"
 )
+
+func init() {
+	RegisterScanner("EventBridge", func(c *client.Clients, region string) Scanner { return NewEventBridgeScanner(c.EventBridge, region) })
+}
 
 type EventBridgeScanner struct {
 	client EventBridgeAPI

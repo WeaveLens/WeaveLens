@@ -7,7 +7,12 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/elip/WeaveLens/internal/domain/resource"
+	"github.com/elip/WeaveLens/internal/infrastructure/aws/client"
 )
+
+func init() {
+	RegisterScanner("Lambda", func(c *client.Clients, region string) Scanner { return NewLambdaScanner(c.Lambda, region) })
+}
 
 type LambdaScanner struct {
 	client LambdaAPI
