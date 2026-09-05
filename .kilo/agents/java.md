@@ -1,7 +1,7 @@
 ---
 description: Implements, debugs, refactors, tests, and reviews Java applications, Spring Boot services, REST APIs, workers, CLI tools, and integrations.
 mode: subagent
-model: kilo/kilo-auto/free
+model: openai/gpt-5.6-sol
 temperature: 0.1
 top_p: 0.9
 permission:

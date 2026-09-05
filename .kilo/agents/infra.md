@@ -1,7 +1,7 @@
 ---
 description: Designs and implements DevOps and infrastructure changes involving AWS, Kubernetes, Terraform, Docker, Helm, CI/CD, networking, Linux, and cloud infrastructure. Use this agent when infrastructure or deployment implementation is required.
 mode: subagent
-model: kilo/kilo-auto/free
+model: openai/gpt-5.6-sol
 temperature: 0.1
 top_p: 0.9
 permission:

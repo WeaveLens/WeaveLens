@@ -1,7 +1,7 @@
 ---
 description: Acts as the technical lead for complex engineering tasks. Analyzes requirements, explores the repository, plans implementation, delegates work to specialized agents, coordinates security and testing, reviews results, and reports the final engineering outcome.
 mode: primary
-model: kilo/kilo-auto/free
+model: openai/gpt-5.6-sol
 temperature: 0.2
 top_p: 0.9
 

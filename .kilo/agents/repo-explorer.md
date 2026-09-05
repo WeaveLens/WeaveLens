@@ -5,7 +5,7 @@ description: >
   when you need to understand an existing project before making changes.
 
 mode: subagent
-model: kilo/kilo-auto/free
+model: openai/gpt-5.6-sol
 
 permission:
   read: allow

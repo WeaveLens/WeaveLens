@@ -1,7 +1,7 @@
 ---
 description: Implements, debugs, refactors, tests, and reviews Python applications, APIs, automation, scripts, workers, integrations, and infrastructure tooling.
 mode: subagent
-model: kilo/kilo-auto/free
+model: openai/gpt-5.6-sol
 temperature: 0.1
 top_p: 0.9
 permission:
