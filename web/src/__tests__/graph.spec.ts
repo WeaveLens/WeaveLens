@@ -60,4 +60,25 @@ describe('graph store', () => {
     store.setCategoryFilter('compute')
     expect(store.filteredEdges).toEqual([])
   })
+
+  it('filters nodes and edges by relationship type', () => {
+    const store = useGraphStore()
+    store.nodes = [
+      { id: '1', name: 'vpc', type: 'VPC', category: 'network', arn: '', region: '', metadata: {} },
+      { id: '2', name: 'subnet', type: 'Subnet', category: 'network', arn: '', region: '', metadata: {} },
+      { id: '3', name: 'instance', type: 'EC2', category: 'compute', arn: '', region: '', metadata: {} },
+    ] as Resource[]
+    store.edges = [
+      { id: 'e1', sourceId: '1', targetId: '2', type: 'contains', metadata: {} },
+      { id: 'e2', sourceId: '2', targetId: '3', type: 'associated_with', metadata: {} },
+    ] as Relationship[]
+
+    expect(store.availableFields).toContain('rel:contains')
+    expect(store.getAvailableValues('rel:contains')).toEqual(['subnet', 'vpc'])
+
+    store.addFilterRule('rel:contains', 'subnet')
+
+    expect(store.filteredNodes.map(node => node.id)).toEqual(['1', '2'])
+    expect(store.filteredEdges.map(edge => edge.id)).toEqual(['e1'])
+  })
 })

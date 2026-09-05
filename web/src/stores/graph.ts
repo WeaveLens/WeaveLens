@@ -85,6 +85,19 @@ export const useGraphStore = defineStore('graph', () => {
     return Array.from(values).sort()
   }
 
+  const nodesById = computed(() => new Map(nodes.value.map(node => [node.id, node])))
+
+  function relationshipRuleMatchesEdge(field: string, value: string, edge: Relationship): boolean {
+    if (!field.startsWith('rel:') || edge.type !== field.slice(4)) return false
+
+    const expected = value.toLowerCase()
+    const source = nodesById.value.get(edge.sourceId)
+    const target = nodesById.value.get(edge.targetId)
+    return [source, target].some(node =>
+      node?.id.toLowerCase() === expected || node?.name.toLowerCase() === expected
+    )
+  }
+
   const availableFields = computed(() => {
     const fields = new Set<string>()
     fields.add('category')
@@ -92,11 +105,23 @@ export const useGraphStore = defineStore('graph', () => {
     nodes.value.forEach(n => {
       Object.keys(n.metadata || {}).forEach(k => fields.add(`meta:${k}`))
     })
+    edges.value.forEach(edge => fields.add(`rel:${edge.type}`))
     return Array.from(fields).sort()
   })
 
   function getAvailableValues(field: string): string[] {
     const values = new Set<string>()
+    if (field.startsWith('rel:')) {
+      edges.value.forEach(edge => {
+        if (edge.type !== field.slice(4)) return
+        const source = nodesById.value.get(edge.sourceId)
+        const target = nodesById.value.get(edge.targetId)
+        if (source) values.add(source.name || source.id)
+        if (target) values.add(target.name || target.id)
+      })
+      return Array.from(values).sort()
+    }
+
     nodes.value.forEach(n => {
       if (field === 'category') {
         values.add(n.category)
@@ -152,6 +177,12 @@ export const useGraphStore = defineStore('graph', () => {
             const value = rule.value.toLowerCase()
             if (field === 'category') return n.category?.toLowerCase() === value
             if (field === 'name') return n.name?.toLowerCase().includes(value)
+            if (field.startsWith('rel:')) {
+              return edges.value.some(edge =>
+                relationshipRuleMatchesEdge(field, rule.value, edge) &&
+                (edge.sourceId === n.id || edge.targetId === n.id)
+              )
+            }
             if (field.startsWith('meta:')) {
               const metaKey = field.slice(5)
               return n.metadata?.[metaKey]?.toLowerCase() === value
@@ -176,7 +207,15 @@ export const useGraphStore = defineStore('graph', () => {
 
   const filteredEdges = computed(() => {
     const nodeIds = new Set(filteredNodes.value.map(n => n.id))
-    return edges.value.filter(e => nodeIds.has(e.sourceId) && nodeIds.has(e.targetId))
+    const relationshipRules = filterRules.value.filter(rule => rule.field.startsWith('rel:'))
+
+    return edges.value.filter(edge =>
+      nodeIds.has(edge.sourceId) &&
+      nodeIds.has(edge.targetId) &&
+      (relationshipRules.length === 0 || relationshipRules.some(rule =>
+        relationshipRuleMatchesEdge(rule.field, rule.value, edge)
+      ))
+    )
   })
 
   const selectedRelationships = computed(() => {

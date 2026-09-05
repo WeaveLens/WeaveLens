@@ -18,6 +18,7 @@ const typeFilterRef = ref<HTMLElement | null>(null)
 const tagFilterRef = ref<HTMLElement | null>(null)
 const advancedFilterRef = ref<HTMLElement | null>(null)
 const valueInputRef = ref<HTMLElement | null>(null)
+const valueDropdownRef = ref<HTMLElement | null>(null)
 const valueDropdownPos = ref({ top: 0, left: 0, width: 0 })
 const regionDropdownOpen = ref(false)
 const typeDropdownOpen = ref(false)
@@ -32,6 +33,7 @@ const regionLabels = ref<Record<string, string>>({})
 
 function handleClickOutside(e: MouseEvent) {
   const target = e.target as Node
+  const insideValueDropdown = valueDropdownRef.value?.contains(target) ?? false
   if (regionFilterRef.value && !regionFilterRef.value.contains(target)) {
     regionDropdownOpen.value = false
   }
@@ -41,10 +43,10 @@ function handleClickOutside(e: MouseEvent) {
   if (tagFilterRef.value && !tagFilterRef.value.contains(target)) {
     tagDropdownOpen.value = false
   }
-  if (valueInputRef.value && !valueInputRef.value.contains(target)) {
+  if (valueInputRef.value && !valueInputRef.value.contains(target) && !insideValueDropdown) {
     valueDropdownOpen.value = false
   }
-  if (advancedFilterRef.value && !advancedFilterRef.value.contains(target)) {
+  if (advancedFilterRef.value && !advancedFilterRef.value.contains(target) && !insideValueDropdown) {
     if (advancedDropdownOpen.value) {
       advancedDropdownOpen.value = false
       valueDropdownOpen.value = false
@@ -796,7 +798,9 @@ defineExpose({ fitGraph })
             <Teleport to="body">
               <div
                 v-if="valueDropdownOpen && graphStore.getAvailableValues(newRule.field).length"
+                ref="valueDropdownRef"
                 class="value-dropdown"
+                @mousedown.stop
                 :style="{
                   top: valueDropdownPos.top + 'px',
                   left: valueDropdownPos.left + 'px',
@@ -807,7 +811,7 @@ defineExpose({ fitGraph })
                   v-for="val in graphStore.getAvailableValues(newRule.field)"
                   :key="val"
                   class="value-option"
-                  @mousedown.prevent="newRule.value = val; valueDropdownOpen = false"
+                  @mousedown.stop.prevent="newRule.value = val; valueDropdownOpen = false"
                 >
                   {{ val }}
                 </div>
