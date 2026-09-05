@@ -12,20 +12,29 @@ services:
   backend:
     image: weavelens/backend:latest
     container_name: weavelens-backend
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     depends_on:
       nats:
         condition: service_started
     ports:
       - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - "SERVER_PORT=8080"
       - "NATS_URL=nats://nats:4222"
-      - "WEAVELENS_HISTORY_FILE=/app/data/.scans.json"
+      - "WEAVELENS_HISTORY_FILE=/app/data/scans.json"
       - "AWS_REGION=us-east-1"
+      - "AWS_SHARED_CREDENTIALS_FILE=/home/nonroot/.aws/credentials"
+      - "AWS_CONFIG_FILE=/home/nonroot/.aws/config"
+      - "AWS_SDK_LOAD_CONFIG=1"
       - "ENV=production"
       - "LOG_LEVEL=info"
+      # This is the endpoint for LocalStack, which is used for local AWS service emulation. It allows the backend service to interact with AWS services without needing real AWS credentials or network access.
+      - "AWS_ENDPOINT_URL=http://host.docker.internal:4566"
     volumes:
       - ./scans:/app/data
+      - ${HOME}/.aws:/home/nonroot/.aws:ro
     restart: unless-stopped
 
   frontend:
